@@ -101,21 +101,23 @@ body {
   position: fixed;
   top: 0;
   bottom: 0;
-  width: calc(50% - 500px); /* Adjusted width to create a gap of 500px between the images */
+  width: calc(
+    50% - 500px
+  ); /* Adjusted width to create a gap of 500px between the images */
   background-repeat: no-repeat;
   background-size: cover;
 }
 
 .left-background {
   left: 0;
-  background-image: url('img.jpg'); /* Adjust path to your image */
+  background-image: url("img.jpg"); /* Adjust path to your image */
   opacity: 0.4; /* Adjust opacity as needed */
   background-position: left; /* Set background position to left */
 }
 
 .right-background {
   right: 0;
-  background-image: url('img.jpg'); /* Adjust path to your image */
+  background-image: url("img.jpg"); /* Adjust path to your image */
   opacity: 0.4; /* Adjust opacity as needed */
   background-position: right; /* Set background position to right */
 }
