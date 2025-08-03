@@ -1,0 +1,179 @@
+---
+import Layout from '../layouts/Layout.astro';
+
+const tilPosts = [
+  {
+    id: 1,
+    date: "2024-01-15",
+    title: "CSS Grid vs Flexbox: When to Use Each",
+    content: "CSS Grid is perfect for 2D layouts (rows and columns), while Flexbox excels at 1D layouts (either rows OR columns). Use Grid for page layouts and Flexbox for component layouts.",
+    tags: ["css", "frontend", "layout"],
+    category: "frontend"
+  },
+  {
+    id: 2,
+    date: "2024-01-14",
+    title: "Python List Comprehensions Performance",
+    content: "List comprehensions are generally faster than equivalent for loops because they're optimized at the C level. However, for complex operations, readability should come first.",
+    tags: ["python", "performance", "optimization"],
+    category: "python"
+  },
+  {
+    id: 3,
+    date: "2024-01-13",
+    title: "Git Rebase vs Merge Strategies",
+    content: "Use rebase for feature branches to maintain a linear history, but never rebase commits that have been pushed to shared repositories. Merge is safer for public branches.",
+    tags: ["git", "workflow", "version-control"],
+    category: "devops"
+  },
+  {
+    id: 4,
+    date: "2024-01-12",
+    title: "JavaScript Event Loop Deep Dive",
+    content: "The event loop processes tasks in this order: 1) Execute all synchronous code, 2) Process microtasks (Promises), 3) Process macrotasks (setTimeout, setInterval).",
+    tags: ["javascript", "async", "performance"],
+    category: "frontend"
+  },
+  {
+    id: 5,
+    date: "2024-01-11",
+    title: "Docker Multi-stage Builds",
+    content: "Multi-stage builds can significantly reduce final image size by using one stage for building and another for runtime. Perfect for compiled languages like Go or Rust.",
+    tags: ["docker", "containers", "optimization"],
+    category: "devops"
+  },
+  {
+    id: 6,
+    date: "2024-01-10",
+    title: "Redis Memory Optimization",
+    content: "Use Redis memory policies like 'allkeys-lru' for automatic eviction, and consider using Redis streams instead of lists for better memory efficiency in queue scenarios.",
+    tags: ["redis", "performance", "databases"],
+    category: "backend"
+  },
+  {
+    id: 7,
+    date: "2024-01-09",
+    title: "TypeScript Utility Types",
+    content: "Pick<T, K> and Omit<T, K> are incredibly useful for creating new types from existing ones. Partial<T> makes all properties optional, while Required<T> makes them all required.",
+    tags: ["typescript", "types", "frontend"],
+    category: "frontend"
+  },
+  {
+    id: 8,
+    date: "2024-01-08",
+    title: "System Design: Load Balancing",
+    content: "Round-robin is simple but doesn't consider server load. Least connections is better for long-lived connections. IP hash ensures session stickiness but can cause uneven distribution.",
+    tags: ["system-design", "load-balancing", "scalability"],
+    category: "system-design"
+  }
+];
+
+const categories = ["all", "frontend", "backend", "python", "devops", "system-design", "databases"];
+const selectedCategory = Astro.url.searchParams.get('category') || 'all';
+
+const filteredPosts = selectedCategory === 'all' 
+  ? tilPosts 
+  : tilPosts.filter(post => post.category === selectedCategory);
+---
+
+<Layout title="Today I Learned - DevNotes">
+  <div class="px-4 py-8 sm:px-6 lg:px-8">
+    <!-- Header -->
+    <div class="mb-8">
+      <h1 class="text-3xl font-bold text-gray-900 dark:text-white mb-4">
+        💡 Today I Learned
+      </h1>
+      <p class="text-gray-600 dark:text-gray-300">
+        Micro-posts about things I learn every day. Small discoveries that make a big difference.
+      </p>
+    </div>
+
+    <!-- Category Filter -->
+    <div class="mb-8">
+      <div class="flex flex-wrap gap-2">
+        {categories.map(category => (
+          <a 
+            href={category === 'all' ? '/til' : `/til?category=${category}`}
+            class={`px-3 py-1 rounded-full text-sm font-medium transition-colors ${
+              category === selectedCategory
+                ? 'bg-primary-600 text-white'
+                : 'bg-gray-200 text-gray-700 hover:bg-gray-300 dark:bg-dark-700 dark:text-gray-300 dark:hover:bg-dark-600'
+            }`}
+          >
+            {category === 'all' ? 'All' : category.charAt(0).toUpperCase() + category.slice(1)}
+          </a>
+        ))}
+      </div>
+    </div>
+
+    <!-- TIL Posts -->
+    <div class="space-y-6">
+      {filteredPosts.map(post => (
+        <article class="card p-6">
+          <div class="flex items-start justify-between mb-4">
+            <div class="flex-1">
+              <div class="flex items-center gap-3 mb-2">
+                <span class="text-sm text-gray-500 dark:text-gray-400">
+                  {new Date(post.date).toLocaleDateString('en-US', { 
+                    year: 'numeric', 
+                    month: 'long', 
+                    day: 'numeric' 
+                  })}
+                </span>
+                <span class="text-xs text-gray-400 dark:text-gray-500 uppercase tracking-wide">
+                  {post.category}
+                </span>
+              </div>
+              
+              <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-3">
+                {post.title}
+              </h3>
+              
+              <p class="text-gray-600 dark:text-gray-300 leading-relaxed">
+                {post.content}
+              </p>
+              
+              <div class="flex flex-wrap gap-2 mt-4">
+                {post.tags.map(tag => (
+                  <span class="tag">{tag}</span>
+                ))}
+              </div>
+            </div>
+          </div>
+        </article>
+      ))}
+    </div>
+
+    <!-- Empty State -->
+    {filteredPosts.length === 0 && (
+      <div class="text-center py-12">
+        <div class="text-6xl mb-4">📝</div>
+        <h3 class="text-lg font-medium text-gray-900 dark:text-white mb-2">
+          No TIL posts found
+        </h3>
+        <p class="text-gray-600 dark:text-gray-400">
+          Try selecting a different category or check back later for new posts.
+        </p>
+      </div>
+    )}
+
+    <!-- Call to Action -->
+    <div class="mt-12 text-center bg-gradient-to-r from-yellow-50 to-orange-50 dark:from-dark-800 dark:to-dark-700 rounded-2xl p-8">
+      <h2 class="text-2xl font-bold text-gray-900 dark:text-white mb-4">
+        Start Your Own TIL Journey
+      </h2>
+      <p class="text-gray-600 dark:text-gray-300 mb-6 max-w-2xl mx-auto">
+        Document your daily learnings, no matter how small. These micro-posts add up to a powerful 
+        knowledge base over time.
+      </p>
+      <div class="flex flex-col sm:flex-row gap-4 justify-center">
+        <a href="/notes" class="btn-primary">
+          Browse All Notes
+        </a>
+        <a href="/progress" class="btn-secondary">
+          Track Learning Progress
+        </a>
+      </div>
+    </div>
+  </div>
+</Layout> 

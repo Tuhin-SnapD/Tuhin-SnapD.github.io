@@ -1,0 +1,302 @@
+---
+import Layout from '../layouts/Layout.astro';
+
+const learningPaths = [
+  {
+    name: "Algorithms & Data Structures",
+    icon: "🔢",
+    progress: 75,
+    totalTopics: 24,
+    completedTopics: 18,
+    currentTopic: "Graph Algorithms",
+    nextTopic: "Dynamic Programming",
+    difficulty: "intermediate",
+    estimatedCompletion: "2 weeks"
+  },
+  {
+    name: "System Design",
+    icon: "🏗️",
+    progress: 45,
+    totalTopics: 12,
+    completedTopics: 5,
+    currentTopic: "Microservices Architecture",
+    nextTopic: "Distributed Systems",
+    difficulty: "advanced",
+    estimatedCompletion: "1 month"
+  },
+  {
+    name: "Python Mastery",
+    icon: "🐍",
+    progress: 85,
+    totalTopics: 18,
+    completedTopics: 15,
+    currentTopic: "Advanced Decorators",
+    nextTopic: "Metaclasses",
+    difficulty: "intermediate",
+    estimatedCompletion: "1 week"
+  },
+  {
+    name: "DevOps & Tools",
+    icon: "⚙️",
+    progress: 60,
+    totalTopics: 15,
+    completedTopics: 9,
+    currentTopic: "Kubernetes",
+    nextTopic: "Service Mesh",
+    difficulty: "intermediate",
+    estimatedCompletion: "3 weeks"
+  },
+  {
+    name: "AI/ML Fundamentals",
+    icon: "🤖",
+    progress: 30,
+    totalTopics: 8,
+    completedTopics: 2,
+    currentTopic: "Neural Networks",
+    nextTopic: "Deep Learning",
+    difficulty: "advanced",
+    estimatedCompletion: "2 months"
+  },
+  {
+    name: "Trading Systems",
+    icon: "📈",
+    progress: 20,
+    totalTopics: 6,
+    completedTopics: 1,
+    currentTopic: "Low-Latency Trading",
+    nextTopic: "Market Microstructure",
+    difficulty: "advanced",
+    estimatedCompletion: "3 months"
+  }
+];
+
+const recentAchievements = [
+  {
+    title: "Completed Binary Search Module",
+    date: "2024-01-15",
+    category: "algorithms",
+    description: "Mastered binary search variations and implementation patterns"
+  },
+  {
+    title: "Built URL Shortener System",
+    date: "2024-01-10",
+    category: "system-design",
+    description: "Designed and implemented a scalable URL shortening service"
+  },
+  {
+    title: "Git Workflow Certification",
+    date: "2024-01-08",
+    category: "devops",
+    description: "Completed advanced Git workflows and collaboration patterns"
+  }
+];
+
+const upcomingGoals = [
+  {
+    title: "Complete Dynamic Programming Module",
+    targetDate: "2024-01-30",
+    category: "algorithms",
+    priority: "high"
+  },
+  {
+    title: "Build a Microservices Demo",
+    targetDate: "2024-02-15",
+    category: "system-design",
+    priority: "medium"
+  },
+  {
+    title: "Learn Kubernetes Basics",
+    targetDate: "2024-02-01",
+    category: "devops",
+    priority: "high"
+  }
+];
+---
+
+<Layout title="Learning Progress - DevNotes">
+  <div class="px-4 py-8 sm:px-6 lg:px-8">
+    <!-- Header -->
+    <div class="mb-8">
+      <h1 class="text-3xl font-bold text-gray-900 dark:text-white mb-4">
+        📊 Learning Progress
+      </h1>
+      <p class="text-gray-600 dark:text-gray-300">
+        Track your learning journey across different technical domains and skills.
+      </p>
+    </div>
+
+    <!-- Overall Progress Summary -->
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+      <div class="card p-6 text-center">
+        <div class="text-3xl font-bold text-primary-600 mb-2">
+          {Math.round(learningPaths.reduce((acc, path) => acc + path.progress, 0) / learningPaths.length)}%
+        </div>
+        <div class="text-gray-600 dark:text-gray-400">Overall Progress</div>
+      </div>
+      <div class="card p-6 text-center">
+        <div class="text-3xl font-bold text-primary-600 mb-2">
+          {learningPaths.reduce((acc, path) => acc + path.completedTopics, 0)}
+        </div>
+        <div class="text-gray-600 dark:text-gray-400">Topics Completed</div>
+      </div>
+      <div class="card p-6 text-center">
+        <div class="text-3xl font-bold text-primary-600 mb-2">
+          {learningPaths.length}
+        </div>
+        <div class="text-gray-600 dark:text-gray-400">Learning Paths</div>
+      </div>
+      <div class="card p-6 text-center">
+        <div class="text-3xl font-bold text-primary-600 mb-2">
+          {learningPaths.filter(path => path.progress === 100).length}
+        </div>
+        <div class="text-gray-600 dark:text-gray-400">Completed Paths</div>
+      </div>
+    </div>
+
+    <!-- Learning Paths -->
+    <div class="mb-12">
+      <h2 class="text-2xl font-bold text-gray-900 dark:text-white mb-6">
+        Learning Paths
+      </h2>
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {learningPaths.map(path => (
+          <div class="card p-6">
+            <div class="flex items-center justify-between mb-4">
+              <div class="flex items-center gap-3">
+                <span class="text-2xl">{path.icon}</span>
+                <div>
+                  <h3 class="text-lg font-semibold text-gray-900 dark:text-white">
+                    {path.name}
+                  </h3>
+                  <p class="text-sm text-gray-500 dark:text-gray-400">
+                    {path.completedTopics} of {path.totalTopics} topics completed
+                  </p>
+                </div>
+              </div>
+              <span class={`px-2 py-1 text-xs rounded-full ${
+                path.difficulty === 'beginner' ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200' :
+                path.difficulty === 'intermediate' ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200' :
+                'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
+              }`}>
+                {path.difficulty}
+              </span>
+            </div>
+
+            <!-- Progress Bar -->
+            <div class="mb-4">
+              <div class="flex justify-between text-sm text-gray-600 dark:text-gray-400 mb-2">
+                <span>Progress</span>
+                <span>{path.progress}%</span>
+              </div>
+              <div class="w-full bg-gray-200 dark:bg-dark-700 rounded-full h-2">
+                <div 
+                  class="bg-primary-600 h-2 rounded-full transition-all duration-300"
+                  style={`width: ${path.progress}%`}
+                ></div>
+              </div>
+            </div>
+
+            <!-- Current and Next Topics -->
+            <div class="space-y-2 mb-4">
+              <div class="flex items-center gap-2">
+                <span class="text-sm font-medium text-gray-700 dark:text-gray-300">Current:</span>
+                <span class="text-sm text-gray-600 dark:text-gray-400">{path.currentTopic}</span>
+              </div>
+              <div class="flex items-center gap-2">
+                <span class="text-sm font-medium text-gray-700 dark:text-gray-300">Next:</span>
+                <span class="text-sm text-gray-600 dark:text-gray-400">{path.nextTopic}</span>
+              </div>
+            </div>
+
+            <div class="flex items-center justify-between">
+              <span class="text-xs text-gray-500 dark:text-gray-400">
+                Est. completion: {path.estimatedCompletion}
+              </span>
+              <a href={`/notes?category=${path.name.toLowerCase().replace(/\s+/g, '-')}`} 
+                 class="text-primary-600 hover:text-primary-700 text-sm font-medium">
+                View Topics →
+              </a>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+
+    <!-- Recent Achievements and Upcoming Goals -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+      <!-- Recent Achievements -->
+      <div>
+        <h2 class="text-2xl font-bold text-gray-900 dark:text-white mb-6">
+          🏆 Recent Achievements
+        </h2>
+        <div class="space-y-4">
+          {recentAchievements.map(achievement => (
+            <div class="card p-4">
+              <div class="flex items-start justify-between mb-2">
+                <h3 class="font-semibold text-gray-900 dark:text-white">
+                  {achievement.title}
+                </h3>
+                <span class="text-xs text-gray-500 dark:text-gray-400">
+                  {new Date(achievement.date).toLocaleDateString()}
+                </span>
+              </div>
+              <p class="text-sm text-gray-600 dark:text-gray-400 mb-2">
+                {achievement.description}
+              </p>
+              <span class="tag">{achievement.category}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <!-- Upcoming Goals -->
+      <div>
+        <h2 class="text-2xl font-bold text-gray-900 dark:text-white mb-6">
+          🎯 Upcoming Goals
+        </h2>
+        <div class="space-y-4">
+          {upcomingGoals.map(goal => (
+            <div class="card p-4">
+              <div class="flex items-start justify-between mb-2">
+                <h3 class="font-semibold text-gray-900 dark:text-white">
+                  {goal.title}
+                </h3>
+                <span class={`px-2 py-1 text-xs rounded-full ${
+                  goal.priority === 'high' ? 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200' :
+                  'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200'
+                }`}>
+                  {goal.priority}
+                </span>
+              </div>
+              <div class="flex items-center justify-between">
+                <span class="text-sm text-gray-600 dark:text-gray-400">
+                  Target: {new Date(goal.targetDate).toLocaleDateString()}
+                </span>
+                <span class="tag">{goal.category}</span>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+
+    <!-- Motivation Section -->
+    <div class="mt-12 text-center bg-gradient-to-r from-green-50 to-blue-50 dark:from-dark-800 dark:to-dark-700 rounded-2xl p-8">
+      <h2 class="text-2xl font-bold text-gray-900 dark:text-white mb-4">
+        Keep Learning, Keep Growing
+      </h2>
+      <p class="text-gray-600 dark:text-gray-300 mb-6 max-w-2xl mx-auto">
+        Every topic you master brings you closer to becoming a better developer. 
+        Consistency beats perfection - keep pushing forward!
+      </p>
+      <div class="flex flex-col sm:flex-row gap-4 justify-center">
+        <a href="/notes" class="btn-primary">
+          Continue Learning
+        </a>
+        <a href="/til" class="btn-secondary">
+          Share Your Learnings
+        </a>
+      </div>
+    </div>
+  </div>
+</Layout> 

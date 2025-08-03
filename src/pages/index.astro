@@ -1,0 +1,223 @@
+---
+import Layout from '../layouts/Layout.astro';
+import { marked } from 'marked';
+
+// Sample featured notes - in a real app, these would come from your notes directory
+const featuredNotes = [
+  {
+    title: "Binary Search Implementation",
+    description: "Complete guide to binary search with examples in Python, JavaScript, and Java",
+    tags: ["algorithms", "python", "javascript"],
+    date: "2024-01-15",
+    readTime: "5 min read"
+  },
+  {
+    title: "System Design: URL Shortener",
+    description: "Step-by-step design of a URL shortening service with scalability considerations",
+    tags: ["system-design", "scalability", "architecture"],
+    date: "2024-01-10",
+    readTime: "12 min read"
+  },
+  {
+    title: "Git Workflow Best Practices",
+    description: "Essential Git commands and workflows for team collaboration",
+    tags: ["git", "workflow", "collaboration"],
+    date: "2024-01-08",
+    readTime: "8 min read"
+  }
+];
+
+const categories = [
+  {
+    name: "Algorithms & DSA",
+    icon: "🔢",
+    count: 24,
+    description: "Data structures, algorithms, and problem-solving techniques"
+  },
+  {
+    name: "System Design",
+    icon: "🏗️",
+    count: 12,
+    description: "Architecture patterns, scalability, and distributed systems"
+  },
+  {
+    name: "Python",
+    icon: "🐍",
+    count: 18,
+    description: "Python tricks, best practices, and interview preparation"
+  },
+  {
+    name: "DevOps & Tools",
+    icon: "⚙️",
+    count: 15,
+    description: "Git, Docker, CI/CD, and development tools"
+  },
+  {
+    name: "AI/ML",
+    icon: "🤖",
+    count: 8,
+    description: "Machine learning concepts, frameworks, and practical tips"
+  },
+  {
+    name: "Trading Systems",
+    icon: "📈",
+    count: 6,
+    description: "Low-latency trading internals and financial systems"
+  }
+];
+---
+
+<Layout title="DevNotes - Your Public Knowledge Garden">
+  <div class="px-4 py-8 sm:px-6 lg:px-8">
+    <!-- Hero Section -->
+    <div class="text-center mb-12">
+      <h1 class="text-4xl font-bold text-gray-900 dark:text-white mb-4">
+        📚 Welcome to DevNotes
+      </h1>
+      <p class="text-xl text-gray-600 dark:text-gray-300 mb-8 max-w-3xl mx-auto">
+        Your personal digital garden of technical knowledge. Explore algorithms, system design, 
+        Python tricks, and everything in between.
+      </p>
+      <div class="flex flex-col sm:flex-row gap-4 justify-center">
+        <a href="/notes" class="btn-primary">
+          Browse All Notes
+        </a>
+        <a href="/til" class="btn-secondary">
+          Today I Learned
+        </a>
+      </div>
+    </div>
+
+    <!-- Quick Stats -->
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-12">
+      <div class="card p-6 text-center">
+        <div class="text-3xl font-bold text-primary-600 mb-2">83</div>
+        <div class="text-gray-600 dark:text-gray-400">Total Notes</div>
+      </div>
+      <div class="card p-6 text-center">
+        <div class="text-3xl font-bold text-primary-600 mb-2">6</div>
+        <div class="text-gray-600 dark:text-gray-400">Categories</div>
+      </div>
+      <div class="card p-6 text-center">
+        <div class="text-3xl font-bold text-primary-600 mb-2">24</div>
+        <div class="text-gray-600 dark:text-gray-400">TIL Posts</div>
+      </div>
+      <div class="card p-6 text-center">
+        <div class="text-3xl font-bold text-primary-600 mb-2">12</div>
+        <div class="text-gray-600 dark:text-gray-400">In Progress</div>
+      </div>
+    </div>
+
+    <!-- Featured Notes -->
+    <div class="mb-12">
+      <h2 class="text-2xl font-bold text-gray-900 dark:text-white mb-6">
+        Featured Notes
+      </h2>
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {featuredNotes.map(note => (
+          <article class="card p-6 hover:shadow-lg transition-shadow duration-200">
+            <div class="flex items-center justify-between mb-3">
+              <span class="text-sm text-gray-500 dark:text-gray-400">{note.date}</span>
+              <span class="text-sm text-gray-500 dark:text-gray-400">{note.readTime}</span>
+            </div>
+            <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-2">
+              {note.title}
+            </h3>
+            <p class="text-gray-600 dark:text-gray-300 mb-4 text-sm">
+              {note.description}
+            </p>
+            <div class="flex flex-wrap gap-2">
+              {note.tags.map(tag => (
+                <span class="tag">{tag}</span>
+              ))}
+            </div>
+          </article>
+        ))}
+      </div>
+    </div>
+
+    <!-- Categories -->
+    <div class="mb-12">
+      <h2 class="text-2xl font-bold text-gray-900 dark:text-white mb-6">
+        Explore by Category
+      </h2>
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {categories.map(category => (
+          <a href={`/notes?category=${category.name.toLowerCase().replace(/\s+/g, '-')}`} 
+             class="card p-6 hover:shadow-lg transition-all duration-200 hover:scale-105">
+            <div class="flex items-center justify-between mb-3">
+              <span class="text-2xl">{category.icon}</span>
+              <span class="text-sm text-gray-500 dark:text-gray-400">{category.count} notes</span>
+            </div>
+            <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-2">
+              {category.name}
+            </h3>
+            <p class="text-gray-600 dark:text-gray-300 text-sm">
+              {category.description}
+            </p>
+          </a>
+        ))}
+      </div>
+    </div>
+
+    <!-- Recent TIL Posts -->
+    <div class="mb-12">
+      <div class="flex items-center justify-between mb-6">
+        <h2 class="text-2xl font-bold text-gray-900 dark:text-white">
+          Recent TIL Posts
+        </h2>
+        <a href="/til" class="text-primary-600 hover:text-primary-700 font-medium">
+          View all →
+        </a>
+      </div>
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div class="card p-6">
+          <div class="text-sm text-gray-500 dark:text-gray-400 mb-2">Today</div>
+          <h3 class="font-semibold text-gray-900 dark:text-white mb-2">
+            CSS Grid vs Flexbox: When to Use Each
+          </h3>
+          <p class="text-gray-600 dark:text-gray-300 text-sm">
+            Understanding the differences and use cases for CSS Grid and Flexbox...
+          </p>
+        </div>
+        <div class="card p-6">
+          <div class="text-sm text-gray-500 dark:text-gray-400 mb-2">Yesterday</div>
+          <h3 class="font-semibold text-gray-900 dark:text-white mb-2">
+            Python List Comprehensions Performance
+          </h3>
+          <p class="text-gray-600 dark:text-gray-300 text-sm">
+            When list comprehensions are faster than traditional for loops...
+          </p>
+        </div>
+        <div class="card p-6">
+          <div class="text-sm text-gray-500 dark:text-gray-400 mb-2">2 days ago</div>
+          <h3 class="font-semibold text-gray-900 dark:text-white mb-2">
+            Git Rebase vs Merge Strategies
+          </h3>
+          <p class="text-gray-600 dark:text-gray-300 text-sm">
+            Choosing the right Git strategy for clean commit history...
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Call to Action -->
+    <div class="text-center bg-gradient-to-r from-primary-50 to-blue-50 dark:from-dark-800 dark:to-dark-700 rounded-2xl p-8">
+      <h2 class="text-2xl font-bold text-gray-900 dark:text-white mb-4">
+        Start Building Your Knowledge Garden
+      </h2>
+      <p class="text-gray-600 dark:text-gray-300 mb-6 max-w-2xl mx-auto">
+        Create your own notes, share your learnings, and build a portfolio that showcases 
+        your technical expertise and continuous learning journey.
+      </p>
+      <div class="flex flex-col sm:flex-row gap-4 justify-center">
+        <a href="/notes" class="btn-primary">
+          Explore Notes
+        </a>
+        <a href="/progress" class="btn-secondary">
+          Track Progress
+        </a>
+      </div>
+    </div>
+  </div>
+</Layout>
