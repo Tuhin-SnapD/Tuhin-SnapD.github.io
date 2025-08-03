@@ -1,91 +1,120 @@
 ---
 import Layout from '../layouts/Layout.astro';
+import Modal from '../components/Modal.astro';
+import { getCollection } from 'astro:content';
 
-const tilPosts = [
-  {
-    id: 1,
-    date: "2024-01-15",
-    title: "CSS Grid vs Flexbox: When to Use Each",
-    content: "CSS Grid is perfect for 2D layouts (rows and columns), while Flexbox excels at 1D layouts (either rows OR columns). Use Grid for page layouts and Flexbox for component layouts.",
-    tags: ["css", "frontend", "layout"],
-    category: "frontend"
-  },
-  {
-    id: 2,
-    date: "2024-01-14",
-    title: "Python List Comprehensions Performance",
-    content: "List comprehensions are generally faster than equivalent for loops because they're optimized at the C level. However, for complex operations, readability should come first.",
-    tags: ["python", "performance", "optimization"],
-    category: "python"
-  },
-  {
-    id: 3,
-    date: "2024-01-13",
-    title: "Git Rebase vs Merge Strategies",
-    content: "Use rebase for feature branches to maintain a linear history, but never rebase commits that have been pushed to shared repositories. Merge is safer for public branches.",
-    tags: ["git", "workflow", "version-control"],
-    category: "devops"
-  },
-  {
-    id: 4,
-    date: "2024-01-12",
-    title: "JavaScript Event Loop Deep Dive",
-    content: "The event loop processes tasks in this order: 1) Execute all synchronous code, 2) Process microtasks (Promises), 3) Process macrotasks (setTimeout, setInterval).",
-    tags: ["javascript", "async", "performance"],
-    category: "frontend"
-  },
-  {
-    id: 5,
-    date: "2024-01-11",
-    title: "Docker Multi-stage Builds",
-    content: "Multi-stage builds can significantly reduce final image size by using one stage for building and another for runtime. Perfect for compiled languages like Go or Rust.",
-    tags: ["docker", "containers", "optimization"],
-    category: "devops"
-  },
-  {
-    id: 6,
-    date: "2024-01-10",
-    title: "Redis Memory Optimization",
-    content: "Use Redis memory policies like 'allkeys-lru' for automatic eviction, and consider using Redis streams instead of lists for better memory efficiency in queue scenarios.",
-    tags: ["redis", "performance", "databases"],
-    category: "backend"
-  },
-  {
-    id: 7,
-    date: "2024-01-09",
-    title: "TypeScript Utility Types",
-    content: "Pick<T, K> and Omit<T, K> are incredibly useful for creating new types from existing ones. Partial<T> makes all properties optional, while Required<T> makes them all required.",
-    tags: ["typescript", "types", "frontend"],
-    category: "frontend"
-  },
-  {
-    id: 8,
-    date: "2024-01-08",
-    title: "System Design: Load Balancing",
-    content: "Round-robin is simple but doesn't consider server load. Least connections is better for long-lived connections. IP hash ensures session stickiness but can cause uneven distribution.",
-    tags: ["system-design", "load-balancing", "scalability"],
-    category: "system-design"
-  }
-];
+// Get all TIL posts from content collection
+const allTilPosts = await getCollection('til');
 
-const categories = ["all", "frontend", "backend", "python", "devops", "system-design", "databases"];
-const selectedCategory = Astro.url.searchParams.get('category') || 'all';
+// Render markdown content to HTML
+const postsWithRenderedContent = await Promise.all(
+  allTilPosts.map(async (post) => {
+    const { Content } = await post.render();
+    return { ...post, Content };
+  })
+);
 
-const filteredPosts = selectedCategory === 'all' 
-  ? tilPosts 
-  : tilPosts.filter(post => post.category === selectedCategory);
+// Get URL parameters for filtering
+const url = new URL(Astro.request.url);
+const selectedCategory = url.searchParams.get('category') || 'all';
+
+// Filter TIL posts based on parameters
+let filteredTilPosts = postsWithRenderedContent.filter(post => post.data.published);
+
+if (selectedCategory !== 'all') {
+  filteredTilPosts = filteredTilPosts.filter(post => post.data.category === selectedCategory);
+}
+
+// Get unique categories
+const categories = ['all', ...new Set(allTilPosts.map(post => post.data.category))];
 ---
 
 <Layout title="Today I Learned - DevNotes">
   <div class="px-4 py-8 sm:px-6 lg:px-8">
     <!-- Header -->
     <div class="mb-8">
-      <h1 class="text-3xl font-bold text-gray-900 dark:text-white mb-4">
-        💡 Today I Learned
-      </h1>
-      <p class="text-gray-600 dark:text-gray-300">
-        Micro-posts about things I learn every day. Small discoveries that make a big difference.
-      </p>
+      <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <h1 class="text-3xl font-bold text-gray-900 dark:text-white mb-4">
+            💡 Today I Learned
+          </h1>
+          <p class="text-gray-600 dark:text-gray-300">
+            Micro-posts about things I learn every day. Small discoveries that make a big difference.
+          </p>
+        </div>
+        <a href="/til/add" class="btn-primary inline-flex items-center gap-2 self-start">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+          </svg>
+          Add Your Note
+        </a>
+      </div>
+    </div>
+
+    <!-- Quick Add TIL Section -->
+    <div class="mb-8">
+      <div class="card p-6">
+        <div class="flex items-center justify-between mb-4">
+          <h3 class="text-lg font-semibold text-gray-900 dark:text-white">
+            🚀 Quick Add TIL
+          </h3>
+          <button 
+            type="button" 
+            id="toggle-quick-add"
+            class="text-primary-600 hover:text-primary-700 dark:text-primary-400 dark:hover:text-primary-300"
+          >
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+            </svg>
+          </button>
+        </div>
+        
+        <form id="quick-til-form" class="hidden space-y-4">
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <input 
+              type="text" 
+              name="quick-title" 
+              placeholder="What did you learn today?"
+              required
+              class="search-input"
+            >
+            <select name="quick-category" required class="search-input">
+              <option value="">Select category</option>
+              <option value="frontend">Frontend</option>
+              <option value="backend">Backend</option>
+              <option value="devops">DevOps</option>
+              <option value="database">Database</option>
+              <option value="tools">Tools</option>
+              <option value="algorithms">Algorithms</option>
+              <option value="design">Design</option>
+              <option value="ai">AI</option>
+              <option value="other">Other</option>
+            </select>
+          </div>
+          <textarea 
+            name="quick-content" 
+            rows="3"
+            placeholder="Share your learning..."
+            required
+            class="search-input resize-none"
+          ></textarea>
+          <div class="flex gap-2">
+            <button type="submit" id="quick-submit-btn" class="btn-primary flex items-center gap-2">
+              <span id="quick-submit-text">Save Quick TIL</span>
+              <svg id="quick-loading-spinner" class="hidden w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+              </svg>
+            </button>
+            <a href="/til/add" class="btn-secondary">
+              Full Form
+            </a>
+            <button type="button" id="test-api-btn" class="btn-secondary">
+              Test API
+            </button>
+          </div>
+        </form>
+      </div>
     </div>
 
     <!-- Category Filter -->
@@ -94,12 +123,11 @@ const filteredPosts = selectedCategory === 'all'
         {categories.map(category => (
           <a 
             href={category === 'all' ? '/til' : `/til?category=${category}`}
-            class={`px-3 py-1 rounded-full text-sm font-medium transition-colors ${
-              category === selectedCategory
+            class={`px-3 py-1 rounded-full text-sm font-medium transition-colors duration-200 ${
+              category === 'all' && selectedCategory === 'all' || category === selectedCategory
                 ? 'bg-primary-600 text-white'
                 : 'bg-gray-200 text-gray-700 hover:bg-gray-300 dark:bg-dark-700 dark:text-gray-300 dark:hover:bg-dark-600'
-            }`}
-          >
+            }`}>
             {category === 'all' ? 'All' : category.charAt(0).toUpperCase() + category.slice(1)}
           </a>
         ))}
@@ -107,73 +135,230 @@ const filteredPosts = selectedCategory === 'all'
     </div>
 
     <!-- TIL Posts -->
-    <div class="space-y-6">
-      {filteredPosts.map(post => (
-        <article class="card p-6">
-          <div class="flex items-start justify-between mb-4">
-            <div class="flex-1">
-              <div class="flex items-center gap-3 mb-2">
-                <span class="text-sm text-gray-500 dark:text-gray-400">
-                  {new Date(post.date).toLocaleDateString('en-US', { 
-                    year: 'numeric', 
-                    month: 'long', 
-                    day: 'numeric' 
-                  })}
-                </span>
-                <span class="text-xs text-gray-400 dark:text-gray-500 uppercase tracking-wide">
-                  {post.category}
-                </span>
+    <div class="mb-8">
+      {filteredTilPosts.length > 0 ? (
+        <div class="space-y-6">
+          {filteredTilPosts.map(post => (
+            <article class="card p-6">
+              <div class="flex items-center justify-between mb-3">
+                <span class="text-sm text-gray-500 dark:text-gray-400">{post.data.date}</span>
+                <span class="tag">{post.data.category}</span>
               </div>
-              
-              <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-3">
-                {post.title}
+              <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-2">
+                {post.data.title}
               </h3>
-              
-              <p class="text-gray-600 dark:text-gray-300 leading-relaxed">
-                {post.content}
-              </p>
-              
-              <div class="flex flex-wrap gap-2 mt-4">
-                {post.tags.map(tag => (
+              {post.data.description && (
+                <p class="text-gray-600 dark:text-gray-300 mb-4 text-sm">
+                  {post.data.description}
+                </p>
+              )}
+              <div class="flex flex-wrap gap-2 mb-4">
+                {post.data.tags.map(tag => (
                   <span class="tag">{tag}</span>
                 ))}
               </div>
-            </div>
+              <div class="prose prose-sm dark:prose-invert max-w-none">
+                <post.Content />
+              </div>
+            </article>
+          ))}
+        </div>
+      ) : (
+        <div class="text-center py-12">
+          <div class="text-gray-500 dark:text-gray-400 mb-4">
+            <svg class="mx-auto h-12 w-12" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+            </svg>
           </div>
-        </article>
-      ))}
+          <h3 class="text-lg font-medium text-gray-900 dark:text-white mb-2">
+            No TIL posts found
+          </h3>
+          <p class="text-gray-600 dark:text-gray-300 mb-4">
+            {selectedCategory !== 'all' 
+              ? `No TIL posts found in the "${selectedCategory}" category.`
+              : 'Start sharing your daily learnings and discoveries.'
+            }
+          </p>
+          <a href="/notes" class="btn-primary">
+            Create Your First Note
+          </a>
+        </div>
+      )}
     </div>
 
-    <!-- Empty State -->
-    {filteredPosts.length === 0 && (
-      <div class="text-center py-12">
-        <div class="text-6xl mb-4">📝</div>
-        <h3 class="text-lg font-medium text-gray-900 dark:text-white mb-2">
-          No TIL posts found
-        </h3>
-        <p class="text-gray-600 dark:text-gray-400">
-          Try selecting a different category or check back later for new posts.
-        </p>
-      </div>
-    )}
-
     <!-- Call to Action -->
-    <div class="mt-12 text-center bg-gradient-to-r from-yellow-50 to-orange-50 dark:from-dark-800 dark:to-dark-700 rounded-2xl p-8">
+    <div class="text-center bg-gradient-to-r from-yellow-50 to-orange-50 dark:from-dark-800 dark:to-dark-700 rounded-2xl p-8">
       <h2 class="text-2xl font-bold text-gray-900 dark:text-white mb-4">
-        Start Your Own TIL Journey
+        Share Your Daily Learnings
       </h2>
       <p class="text-gray-600 dark:text-gray-300 mb-6 max-w-2xl mx-auto">
-        Document your daily learnings, no matter how small. These micro-posts add up to a powerful 
-        knowledge base over time.
+        Documenting what you learn each day helps reinforce knowledge and creates a valuable 
+        resource for future reference. Start with small insights and build your knowledge base.
       </p>
       <div class="flex flex-col sm:flex-row gap-4 justify-center">
-        <a href="/notes" class="btn-primary">
-          Browse All Notes
+        <a href="/til/add" class="btn-primary">
+          Add Your TIL Note
         </a>
-        <a href="/progress" class="btn-secondary">
-          Track Learning Progress
+        <a href="/notes" class="btn-secondary">
+          Browse All Notes
         </a>
       </div>
     </div>
   </div>
+
+  <!-- Floating Action Button for Mobile -->
+  <div class="fixed bottom-6 right-6 lg:hidden z-50">
+    <a 
+      href="/til/add" 
+      class="bg-primary-600 hover:bg-primary-700 text-white p-4 rounded-full shadow-lg transition-all duration-200 hover:scale-110"
+      title="Add TIL Note"
+    >
+      <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+      </svg>
+    </a>
+  </div>
+
+  <script>
+    // Quick Add TIL functionality
+    const toggleQuickAdd = document.getElementById('toggle-quick-add');
+    const quickTilForm = document.getElementById('quick-til-form');
+    const quickTilFormElement = document.getElementById('quick-til-form');
+
+    toggleQuickAdd?.addEventListener('click', () => {
+      quickTilForm?.classList.toggle('hidden');
+      const isHidden = quickTilForm?.classList.contains('hidden');
+      
+      // Rotate arrow icon
+      const arrow = toggleQuickAdd.querySelector('svg');
+      if (arrow) {
+        arrow.style.transform = isHidden ? 'rotate(0deg)' : 'rotate(180deg)';
+      }
+    });
+
+    quickTilFormElement?.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      
+      const quickSubmitBtn = document.getElementById('quick-submit-btn') as HTMLButtonElement;
+      const quickSubmitText = document.getElementById('quick-submit-text');
+      const quickLoadingSpinner = document.getElementById('quick-loading-spinner');
+      
+      // Show loading state
+      quickSubmitBtn.disabled = true;
+      quickSubmitText.textContent = 'Creating...';
+      quickLoadingSpinner?.classList.remove('hidden');
+      
+      // Get form data
+      const formData = new FormData(quickTilFormElement);
+      const title = formData.get('quick-title') as string;
+      const category = formData.get('quick-category') as string;
+      const content = formData.get('quick-content') as string;
+      
+      // Validate required fields
+      if (!title || !title.trim()) {
+        window.Modal.show('notification-modal', 'Please enter a title for your TIL note.', 'Validation Error', 'warning');
+        quickSubmitBtn.disabled = false;
+        quickSubmitText.textContent = 'Save Quick TIL';
+        quickLoadingSpinner?.classList.add('hidden');
+        return;
+      }
+      
+      if (!category || !category.trim()) {
+        window.Modal.show('notification-modal', 'Please select a category for your TIL note.', 'Validation Error', 'warning');
+        quickSubmitBtn.disabled = false;
+        quickSubmitText.textContent = 'Save Quick TIL';
+        quickLoadingSpinner?.classList.add('hidden');
+        return;
+      }
+      
+      if (!content || !content.trim()) {
+        window.Modal.show('notification-modal', 'Please enter content for your TIL note.', 'Validation Error', 'warning');
+        quickSubmitBtn.disabled = false;
+        quickSubmitText.textContent = 'Save Quick TIL';
+        quickLoadingSpinner?.classList.add('hidden');
+        return;
+      }
+      
+      // Create JSON data
+      const jsonData = {
+        'quick-title': title.trim(),
+        'quick-category': category.trim(),
+        'quick-content': content.trim()
+      };
+      
+      console.log('Submitting quick TIL form with data:', jsonData);
+      
+      try {
+        const requestBody = JSON.stringify(jsonData);
+        console.log('Request body being sent:', requestBody);
+        
+        const response = await fetch('/api/quick-add-til', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: requestBody
+        });
+        
+        console.log('Response status:', response.status);
+        
+        const result = await response.json();
+        console.log('Response result:', result);
+        
+        if (result.success) {
+          window.Modal.show('notification-modal', 'Quick TIL created successfully! The page will reload to show your new note.', 'Success', 'success');
+          quickTilFormElement.reset();
+          quickTilForm?.classList.add('hidden');
+          // Reload the page to show the new TIL
+          window.location.reload();
+        } else {
+          window.Modal.show('notification-modal', `Error: ${result.message}`, 'Error', 'error');
+          // Reset button state
+          quickSubmitBtn.disabled = false;
+          quickSubmitText.textContent = 'Save Quick TIL';
+          quickLoadingSpinner?.classList.add('hidden');
+        }
+      } catch (error) {
+        window.Modal.show('notification-modal', 'Error creating TIL note. Please try again.', 'Error', 'error');
+        console.error('Error:', error);
+        // Reset button state
+        quickSubmitBtn.disabled = false;
+        quickSubmitText.textContent = 'Save Quick TIL';
+        quickLoadingSpinner?.classList.add('hidden');
+      }
+    });
+    
+    // Test API functionality
+    const testApiBtn = document.getElementById('test-api-btn');
+    testApiBtn?.addEventListener('click', async () => {
+      console.log('Testing API...');
+      
+      const testData = {
+        test: 'data',
+        message: 'Hello from test'
+      };
+      
+      try {
+        const response = await fetch('/api/test', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(testData)
+        });
+        
+        console.log('Test response status:', response.status);
+        const result = await response.json();
+        console.log('Test response result:', result);
+        
+        window.Modal.show('notification-modal', `Test API result: ${result.success ? 'Success' : 'Failed'} - ${result.message}`, 'Test Result', 'info');
+      } catch (error) {
+        console.error('Test API error:', error);
+        window.Modal.show('notification-modal', 'Test API failed: ' + error.message, 'Test Error', 'error');
+      }
+    });
+  </script>
+
+  <!-- Modal for notifications -->
+  <Modal id="notification-modal" title="Notification" type="info" />
 </Layout> 

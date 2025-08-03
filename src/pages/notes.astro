@@ -1,124 +1,79 @@
 ---
 import Layout from '../layouts/Layout.astro';
-import { marked } from 'marked';
+import { getCollection } from 'astro:content';
 
-// In a real app, you'd fetch this from your notes directory
-const allNotes = [
-  {
-    title: "Binary Search Implementation",
-    description: "Complete guide to binary search with examples in Python, JavaScript, and Java",
-    tags: ["algorithms", "python", "javascript", "java", "search"],
-    date: "2024-01-15",
-    readTime: "5 min read",
-    category: "algorithms",
-    difficulty: "intermediate",
-    slug: "binary-search"
-  },
-  {
-    title: "System Design: URL Shortener",
-    description: "Step-by-step design of a URL shortening service with scalability considerations",
-    tags: ["system-design", "scalability", "architecture", "distributed-systems"],
-    date: "2024-01-10",
-    readTime: "12 min read",
-    category: "system-design",
-    difficulty: "advanced",
-    slug: "url-shortener-design"
-  },
-  {
-    title: "Git Workflow Best Practices",
-    description: "Essential Git commands and workflows for team collaboration",
-    tags: ["git", "workflow", "collaboration", "version-control"],
-    date: "2024-01-08",
-    readTime: "8 min read",
-    category: "devops",
-    difficulty: "beginner",
-    slug: "git-workflow"
-  },
-  {
-    title: "Python List Comprehensions Performance",
-    description: "When list comprehensions are faster than traditional for loops",
-    tags: ["python", "performance", "optimization"],
-    date: "2024-01-05",
-    readTime: "4 min read",
-    category: "python",
-    difficulty: "intermediate",
-    slug: "python-list-comprehensions"
-  },
-  {
-    title: "CSS Grid vs Flexbox: When to Use Each",
-    description: "Understanding the differences and use cases for CSS Grid and Flexbox",
-    tags: ["css", "frontend", "layout", "responsive-design"],
-    date: "2024-01-03",
-    readTime: "6 min read",
-    category: "frontend",
-    difficulty: "intermediate",
-    slug: "css-grid-vs-flexbox"
-  },
-  {
-    title: "Docker Container Best Practices",
-    description: "Optimizing Docker containers for production deployment",
-    tags: ["docker", "containers", "devops", "deployment"],
-    date: "2023-12-28",
-    readTime: "10 min read",
-    category: "devops",
-    difficulty: "intermediate",
-    slug: "docker-best-practices"
-  }
-];
+// Get all notes from content collection
+const allNotes = await getCollection('notes');
 
-const categories = ["all", "algorithms", "system-design", "python", "devops", "frontend", "ai-ml", "trading"];
-const difficulties = ["all", "beginner", "intermediate", "advanced"];
-
-// Get URL parameters for filtering
+// Get URL parameters for filtering (only category and difficulty)
 const url = new URL(Astro.request.url);
 const selectedCategory = url.searchParams.get('category') || 'all';
 const selectedDifficulty = url.searchParams.get('difficulty') || 'all';
-const searchQuery = url.searchParams.get('search') || '';
 
-// Filter notes based on parameters
-let filteredNotes = allNotes;
+// Filter notes based on parameters (server-side for category and difficulty only)
+let filteredNotes = allNotes.filter(note => note.data.published);
 
 if (selectedCategory !== 'all') {
-  filteredNotes = filteredNotes.filter(note => note.category === selectedCategory);
+  filteredNotes = filteredNotes.filter(note => note.data.category === selectedCategory);
 }
 
 if (selectedDifficulty !== 'all') {
-  filteredNotes = filteredNotes.filter(note => note.difficulty === selectedDifficulty);
+  filteredNotes = filteredNotes.filter(note => note.data.difficulty === selectedDifficulty);
 }
 
-if (searchQuery) {
-  const query = searchQuery.toLowerCase();
-  filteredNotes = filteredNotes.filter(note => 
-    note.title.toLowerCase().includes(query) ||
-    note.description.toLowerCase().includes(query) ||
-    note.tags.some(tag => tag.toLowerCase().includes(query))
-  );
-}
+// Get unique categories and difficulties
+const categories = ['all', ...new Set(allNotes.map(note => note.data.category))];
+const difficulties = ['all', ...new Set(allNotes.map(note => note.data.difficulty))];
+
+// Debug logging
+console.log('Debug info:', {
+  totalNotes: allNotes.length,
+  filteredNotes: filteredNotes.length,
+  selectedCategory,
+  selectedDifficulty,
+  categories,
+  difficulties
+});
 ---
 
 <Layout title="All Notes - DevNotes">
   <div class="px-4 py-8 sm:px-6 lg:px-8">
     <!-- Header -->
     <div class="mb-8">
-      <h1 class="text-3xl font-bold text-gray-900 dark:text-white mb-4">
-        All Notes
-      </h1>
-      <p class="text-gray-600 dark:text-gray-300">
-        Explore {allNotes.length} technical notes across various topics and difficulty levels.
-      </p>
+      <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <h1 class="text-3xl font-bold text-gray-900 dark:text-white mb-4">
+            📝 All Notes
+          </h1>
+          <p class="text-gray-600 dark:text-gray-300">
+            Explore all technical notes, tutorials, and learning resources.
+          </p>
+        </div>
+        <a href="/notes/add" class="btn-primary inline-flex items-center gap-2 self-start">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+          </svg>
+          Add Note
+        </a>
+      </div>
     </div>
 
-    <!-- Filters -->
+    <!-- Search and Filters -->
     <div class="mb-8 space-y-4">
       <!-- Search -->
-      <div class="relative max-w-md">
+      <div class="relative">
         <input 
           type="text" 
           placeholder="Search notes..." 
-          class="search-input"
+          class="search-input w-full"
           id="search-input"
-          value={searchQuery}
         >
+        <div id="search-loading" class="absolute inset-y-0 right-8 flex items-center pointer-events-none hidden">
+          <svg class="w-4 h-4 text-gray-400 animate-spin" fill="none" viewBox="0 0 24 24">
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+          </svg>
+        </div>
         <div class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
           <svg class="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
@@ -126,26 +81,24 @@ if (searchQuery) {
         </div>
       </div>
 
-      <!-- Category and Difficulty Filters -->
+      <!-- Filters -->
       <div class="flex flex-wrap gap-4">
-        <div>
-          <label for="category-filter" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-            Category
-          </label>
-          <select id="category-filter" class="search-input w-auto">
+        <!-- Category Filter -->
+        <div class="flex items-center gap-2">
+          <label class="text-sm font-medium text-gray-700 dark:text-gray-300">Category:</label>
+          <select class="px-3 py-1 border border-gray-300 dark:border-dark-600 rounded-md bg-white dark:bg-dark-800 text-gray-900 dark:text-gray-100 text-sm" id="category-filter">
             {categories.map(category => (
               <option value={category} selected={category === selectedCategory}>
-                {category === 'all' ? 'All Categories' : category.charAt(0).toUpperCase() + category.slice(1).replace('-', ' ')}
+                {category === 'all' ? 'All Categories' : category.charAt(0).toUpperCase() + category.slice(1)}
               </option>
             ))}
           </select>
         </div>
 
-        <div>
-          <label for="difficulty-filter" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-            Difficulty
-          </label>
-          <select id="difficulty-filter" class="search-input w-auto">
+        <!-- Difficulty Filter -->
+        <div class="flex items-center gap-2">
+          <label class="text-sm font-medium text-gray-700 dark:text-gray-300">Difficulty:</label>
+          <select class="px-3 py-1 border border-gray-300 dark:border-dark-600 rounded-md bg-white dark:bg-dark-800 text-gray-900 dark:text-gray-100 text-sm" id="difficulty-filter">
             {difficulties.map(difficulty => (
               <option value={difficulty} selected={difficulty === selectedDifficulty}>
                 {difficulty === 'all' ? 'All Levels' : difficulty.charAt(0).toUpperCase() + difficulty.slice(1)}
@@ -156,117 +109,261 @@ if (searchQuery) {
       </div>
     </div>
 
-    <!-- Results Count -->
-    <div class="mb-6">
-      <p class="text-gray-600 dark:text-gray-400">
-        Showing {filteredNotes.length} of {allNotes.length} notes
+    <!-- Debug Info (temporary) -->
+    {(selectedCategory !== 'all' || selectedDifficulty !== 'all') && (
+      <div class="mb-4 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
+        <p class="text-sm text-blue-800 dark:text-blue-200">
+          <strong>Active Filters:</strong>
+          {selectedCategory !== 'all' && ` Category: ${selectedCategory}`}
+          {selectedDifficulty !== 'all' && ` Difficulty: ${selectedDifficulty}`}
+          <span class="ml-2">(<span id="filtered-count">{filteredNotes.length}</span> notes found)</span>
+        </p>
+        <a href="/notes" class="text-xs text-blue-600 dark:text-blue-300 hover:underline">
+          Clear all filters
+        </a>
+      </div>
+    )}
+
+    <!-- Search Results Info -->
+    <div id="search-info" class="mb-4 p-3 bg-green-50 dark:bg-green-900/20 rounded-lg hidden">
+      <p class="text-sm text-green-800 dark:text-green-200">
+        <strong>Search Results:</strong>
+        <span id="search-count">0</span> notes found for "<span id="search-term"></span>"
       </p>
+      <button id="clear-search" class="text-xs text-green-600 dark:text-green-300 hover:underline">
+        Clear search
+      </button>
     </div>
 
     <!-- Notes Grid -->
-    {filteredNotes.length > 0 ? (
-      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {filteredNotes.map(note => (
-          <article class="card p-6 hover:shadow-lg transition-all duration-200 hover:scale-105">
-            <div class="flex items-center justify-between mb-3">
-              <span class="text-sm text-gray-500 dark:text-gray-400">{note.date}</span>
-              <div class="flex items-center space-x-2">
-                <span class="text-sm text-gray-500 dark:text-gray-400">{note.readTime}</span>
+    <div class="mb-8">
+              <div id="notes-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {filteredNotes.map(note => (
+            <article 
+              class="card p-6 hover:shadow-lg transition-shadow duration-200"
+              data-category={note.data.category}
+              data-difficulty={note.data.difficulty}
+            >
+              <div class="flex items-center justify-between mb-3">
+                <span class="text-sm text-gray-500 dark:text-gray-400">{note.data.date}</span>
+                <span class="text-sm text-gray-500 dark:text-gray-400">{note.data.readTime || '5 min read'}</span>
+              </div>
+              <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-2">
+                {note.data.title}
+              </h3>
+              <p class="text-gray-600 dark:text-gray-300 mb-4 text-sm">
+                {note.data.description}
+              </p>
+              <div class="flex flex-wrap gap-2 mb-4">
+                {note.data.tags.map(tag => (
+                  <span class="tag">{tag}</span>
+                ))}
+              </div>
+              <div class="flex items-center justify-between">
                 <span class={`px-2 py-1 text-xs rounded-full ${
-                  note.difficulty === 'beginner' ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200' :
-                  note.difficulty === 'intermediate' ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200' :
+                  note.data.difficulty === 'beginner' ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200' :
+                  note.data.difficulty === 'intermediate' ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200' :
                   'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
                 }`}>
-                  {note.difficulty}
+                  {note.data.difficulty}
                 </span>
+                <a href={`/notes/${note.slug}`} class="text-primary-600 hover:text-primary-700 text-sm font-medium">
+                  Read more →
+                </a>
               </div>
-            </div>
-            
-            <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-2">
-              <a href={`/notes/${note.slug}`} class="hover:text-primary-600 transition-colors">
-                {note.title}
-              </a>
-            </h3>
-            
-            <p class="text-gray-600 dark:text-gray-300 mb-4 text-sm">
-              {note.description}
-            </p>
-            
-            <div class="flex flex-wrap gap-2 mb-4">
-              {note.tags.slice(0, 3).map(tag => (
-                <span class="tag">{tag}</span>
-              ))}
-              {note.tags.length > 3 && (
-                <span class="text-xs text-gray-500 dark:text-gray-400">+{note.tags.length - 3} more</span>
-              )}
-            </div>
-            
-            <div class="flex items-center justify-between">
-              <span class="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wide">
-                {note.category}
-              </span>
-              <a href={`/notes/${note.slug}`} class="text-primary-600 hover:text-primary-700 text-sm font-medium">
-                Read more →
-              </a>
-            </div>
-          </article>
-        ))}
+            </article>
+          ))}
+        </div>
       </div>
-    ) : (
-      <div class="text-center py-12">
-        <div class="text-6xl mb-4">🔍</div>
-        <h3 class="text-lg font-medium text-gray-900 dark:text-white mb-2">
-          No notes found
-        </h3>
-        <p class="text-gray-600 dark:text-gray-400 mb-6">
-          Try adjusting your search criteria or filters.
-        </p>
-        <button onclick="clearFilters()" class="btn-primary">
-          Clear Filters
-        </button>
+    </div>
+
+    <!-- No Results Message -->
+    <div id="no-results" class="text-center py-12 hidden">
+      <div class="text-gray-500 dark:text-gray-400 mb-4">
+        <svg class="mx-auto h-12 w-12" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+        </svg>
       </div>
-    )}
+      <h3 class="text-lg font-medium text-gray-900 dark:text-white mb-2">
+        No notes found
+      </h3>
+      <p class="text-gray-600 dark:text-gray-300 mb-4">
+        Try adjusting your search or filters to find what you're looking for.
+      </p>
+      <button id="clear-all-filters" class="btn-primary">
+        Clear all filters
+      </button>
+    </div>
+    </div>
+
+    <!-- Call to Action -->
+    <div class="text-center bg-gradient-to-r from-primary-50 to-blue-50 dark:from-dark-800 dark:to-dark-700 rounded-2xl p-8">
+      <h2 class="text-2xl font-bold text-gray-900 dark:text-white mb-4">
+        Contribute to Your Knowledge Base
+      </h2>
+      <p class="text-gray-600 dark:text-gray-300 mb-6 max-w-2xl mx-auto">
+        Add your own notes, tutorials, and insights to build a comprehensive knowledge garden 
+        that grows with your learning journey.
+      </p>
+      <div class="flex flex-col sm:flex-row gap-4 justify-center">
+        <a href="/notes/add" class="btn-primary">
+          Add New Note
+        </a>
+        <a href="/til" class="btn-secondary">
+          Share TIL Posts
+        </a>
+      </div>
+    </div>
   </div>
 
-  <script>
-    // Filter functionality
-    const searchInput = document.getElementById('search-input');
-    const categoryFilter = document.getElementById('category-filter');
-    const difficultyFilter = document.getElementById('difficulty-filter');
+  <!-- Floating Action Button for Mobile -->
+  <div class="fixed bottom-6 right-6 lg:hidden z-50">
+    <a 
+      href="/notes/add" 
+      class="bg-primary-600 hover:bg-primary-700 text-white p-4 rounded-full shadow-lg transition-all duration-200 hover:scale-110"
+      title="Add Note"
+    >
+      <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+      </svg>
+    </a>
+  </div>
+</Layout>
 
-    function updateFilters() {
-      const search = searchInput?.value || '';
-      const category = categoryFilter?.value || 'all';
-      const difficulty = difficultyFilter?.value || 'all';
+<script>
+  // Frontend-only search and filtering
+  document.addEventListener('DOMContentLoaded', function() {
+    const searchInput = document.getElementById('search-input') as HTMLInputElement;
+    const categoryFilter = document.getElementById('category-filter') as HTMLSelectElement;
+    const difficultyFilter = document.getElementById('difficulty-filter') as HTMLSelectElement;
+    const notesContainer = document.getElementById('notes-container') as HTMLElement;
+    const noResults = document.getElementById('no-results') as HTMLElement;
+    const searchInfo = document.getElementById('search-info') as HTMLElement;
+    const searchCount = document.getElementById('search-count') as HTMLElement;
+    const searchTerm = document.getElementById('search-term') as HTMLElement;
+    const clearSearch = document.getElementById('clear-search') as HTMLElement;
+    const clearAllFilters = document.getElementById('clear-all-filters') as HTMLElement;
+    const filteredCount = document.getElementById('filtered-count') as HTMLElement;
+    const searchLoading = document.getElementById('search-loading') as HTMLElement;
+
+    console.log('Elements found:', {
+      searchInput: !!searchInput,
+      categoryFilter: !!categoryFilter,
+      difficultyFilter: !!difficultyFilter,
+      notesContainer: !!notesContainer,
+      noResults: !!noResults,
+      searchInfo: !!searchInfo
+    });
+
+    if (!searchInput || !categoryFilter || !difficultyFilter || !notesContainer) {
+      console.error('Required elements not found');
+      return;
+    }
+
+    // Store all notes for client-side filtering
+    const allNotes = Array.from(notesContainer.children) as HTMLElement[];
+    let searchTimeout: number;
+
+    function performSearch() {
+      const searchQuery = searchInput.value.toLowerCase().trim();
+      const category = categoryFilter.value;
+      const difficulty = difficultyFilter.value;
+
+      console.log('Performing search:', { searchQuery, category, difficulty });
+
+      let visibleNotes = 0;
+      let searchResults = 0;
+
+      allNotes.forEach(note => {
+        const title = note.querySelector('h3')?.textContent?.toLowerCase() || '';
+        const description = note.querySelector('p')?.textContent?.toLowerCase() || '';
+        const tags = Array.from(note.querySelectorAll('.tag')).map(tag => tag.textContent?.toLowerCase() || '');
+        const noteCategory = note.querySelector('[data-category]')?.getAttribute('data-category') || '';
+        const noteDifficulty = note.querySelector('[data-difficulty]')?.getAttribute('data-difficulty') || '';
+
+        // Check category and difficulty filters
+        const categoryMatch = category === 'all' || noteCategory === category;
+        const difficultyMatch = difficulty === 'all' || noteDifficulty === difficulty;
+
+        // Check search query
+        const searchMatch = !searchQuery || 
+          title.includes(searchQuery) || 
+          description.includes(searchQuery) || 
+          tags.some(tag => tag.includes(searchQuery));
+
+        // Show/hide note based on all filters
+        if (categoryMatch && difficultyMatch && searchMatch) {
+          note.style.display = 'block';
+          visibleNotes++;
+          if (searchQuery) searchResults++;
+        } else {
+          note.style.display = 'none';
+        }
+      });
+
+      // Update UI
+      updateSearchUI(searchQuery, searchResults, visibleNotes);
+    }
+
+    function updateSearchUI(searchQuery: string, searchResults: number, visibleNotes: number) {
+      // Update search info
+      if (searchQuery) {
+        searchInfo.classList.remove('hidden');
+        searchCount.textContent = searchResults.toString();
+        searchTerm.textContent = searchQuery;
+      } else {
+        searchInfo.classList.add('hidden');
+      }
+
+      // Update filtered count
+      if (filteredCount) {
+        filteredCount.textContent = visibleNotes.toString();
+      }
+
+      // Show/hide no results message
+      if (visibleNotes === 0) {
+        notesContainer.style.display = 'none';
+        noResults.classList.remove('hidden');
+      } else {
+        notesContainer.style.display = 'grid';
+        noResults.classList.add('hidden');
+      }
+    }
+
+    // Search input events with debounce
+    searchInput.addEventListener('input', () => {
+      // Show loading indicator
+      searchLoading?.classList.remove('hidden');
       
-      const params = new URLSearchParams();
-      if (search) params.set('search', search);
-      if (category !== 'all') params.set('category', category);
-      if (difficulty !== 'all') params.set('difficulty', difficulty);
-      
-      const url = new URL(window.location);
-      url.search = params.toString();
-      window.location.href = url.toString();
-    }
+      clearTimeout(searchTimeout);
+      searchTimeout = setTimeout(() => {
+        performSearch();
+        // Hide loading indicator
+        searchLoading?.classList.add('hidden');
+      }, 300); // 300ms delay
+    });
 
-    searchInput?.addEventListener('input', debounce(updateFilters, 300));
-    categoryFilter?.addEventListener('change', updateFilters);
-    difficultyFilter?.addEventListener('change', updateFilters);
+    // Filter change events
+    categoryFilter.addEventListener('change', performSearch);
+    difficultyFilter.addEventListener('change', performSearch);
 
-    function debounce(func, wait) {
-      let timeout;
-      return function executedFunction(...args) {
-        const later = () => {
-          clearTimeout(timeout);
-          func(...args);
-        };
-        clearTimeout(timeout);
-        timeout = setTimeout(later, wait);
-      };
-    }
+    // Clear search button
+    clearSearch?.addEventListener('click', () => {
+      searchInput.value = '';
+      performSearch();
+    });
 
-    function clearFilters() {
-      window.location.href = '/notes';
-    }
-  </script>
-</Layout> 
+    // Clear all filters button
+    clearAllFilters?.addEventListener('click', () => {
+      searchInput.value = '';
+      categoryFilter.value = 'all';
+      difficultyFilter.value = 'all';
+      performSearch();
+    });
+
+    // Initialize search on page load
+    performSearch();
+
+    console.log('Frontend search functionality initialized successfully');
+  });
+</script> 

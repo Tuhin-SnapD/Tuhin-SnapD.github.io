@@ -5,6 +5,15 @@ import { defineConfig } from 'astro/config';
 export default defineConfig({
   site: 'https://tuhin-snapd.github.io',
   base: '/',
-  output: 'static',
+  output: 'server',
   integrations: [],
+  markdown: {
+    shikiConfig: {
+      theme: 'github-dark',
+      wrap: true
+    }
+  },
+  experimental: {
+    contentCollectionCache: false
+  }
 });

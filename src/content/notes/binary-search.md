@@ -6,6 +6,8 @@ date: "2024-01-15"
 readTime: "5 min read"
 category: "algorithms"
 difficulty: "intermediate"
+published: true
+featured: true
 ---
 
 # Binary Search Implementation

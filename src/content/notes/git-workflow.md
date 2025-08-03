@@ -6,6 +6,8 @@ date: "2024-01-08"
 readTime: "8 min read"
 category: "devops"
 difficulty: "beginner"
+published: true
+featured: false
 ---
 
 # Git Workflow Best Practices
