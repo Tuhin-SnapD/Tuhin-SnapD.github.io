@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>3D Portfolio - Tuhin SnapD</title>
+  <meta name="description" content="Interactive 3D Portfolio built with Babylon.js">
+  <meta name="theme-color" content="#1a1a1a">
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      font-family: 'Arial', sans-serif;
+      background: #000;
+      overflow: hidden;
+      touch-action: none;
+      /* Performance optimizations */
+      margin: 0;
+      padding: 0;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+    
+    #renderCanvas {
+      width: 100vw;
+      height: 100vh;
+      display: block;
+      outline: none;
+      cursor: pointer;
+      /* Performance optimizations */
+      will-change: transform;
+      transform: translateZ(0);
+      backface-visibility: hidden;
+    }
+    
+    #renderCanvas:focus {
+      outline: 2px solid #4CAF50;
+      outline-offset: -2px;
+    }
+    
+    .ui-overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      z-index: 10;
+    }
+    
+    .ui-overlay > * {
+      pointer-events: auto;
+    }
+    
+    .mobile-controls {
+      position: absolute;
+      bottom: 20px;
+      left: 20px;
+      display: none;
+    }
+    
+    .joystick {
+      width: 80px;
+      height: 80px;
+      background: rgba(255, 255, 255, 0.2);
+      border-radius: 50%;
+      border: 2px solid rgba(255, 255, 255, 0.3);
+      position: relative;
+      cursor: pointer;
+    }
+    
+    .joystick-knob {
+      width: 30px;
+      height: 30px;
+      background: rgba(255, 255, 255, 0.8);
+      border-radius: 50%;
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      transition: all 0.1s ease;
+    }
+    
+    .instructions {
+      position: absolute;
+      top: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      color: white;
+      text-align: center;
+      font-size: 14px;
+      opacity: 0.8;
+    }
+    
+    .popup {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: rgba(0, 0, 0, 0.9);
+      color: white;
+      padding: 30px;
+      border-radius: 10px;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      max-width: 500px;
+      width: 90%;
+      display: none;
+      z-index: 100;
+    }
+    
+    .popup h2 {
+      margin-bottom: 15px;
+      color: #4CAF50;
+    }
+    
+    .popup p {
+      line-height: 1.6;
+      margin-bottom: 15px;
+    }
+    
+    .popup .close-btn {
+      position: absolute;
+      top: 10px;
+      right: 15px;
+      background: none;
+      border: none;
+      color: white;
+      font-size: 20px;
+      cursor: pointer;
+      opacity: 0.7;
+    }
+    
+    .popup .close-btn:hover {
+      opacity: 1;
+    }
+    
+    .loading {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      color: white;
+      font-size: 18px;
+      z-index: 5;
+    }
+    
+    .debug-panel {
+      position: absolute;
+      top: 20px;
+      right: 20px;
+      background: rgba(0, 0, 0, 0.7);
+      color: white;
+      padding: 10px;
+      border-radius: 5px;
+      font-family: monospace;
+      font-size: 12px;
+      z-index: 20;
+    }
+    
+    @media (max-width: 768px) {
+      .mobile-controls {
+        display: block;
+      }
+      
+      .instructions {
+        font-size: 12px;
+        top: 10px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <canvas id="renderCanvas" tabindex="0"></canvas>
+  
+  <div class="loading" id="loading">Loading 3D Portfolio...</div>
+  
+  <div class="ui-overlay">
+    <div class="instructions">
+      <div id="desktop-instructions">Click the screen first, then use WASD to drive the car around</div>
+      <div id="mobile-instructions">Touch and drag to drive the car</div>
+    </div>
+    
+    <div class="mobile-controls">
+      <div class="joystick" id="joystick">
+        <div class="joystick-knob" id="joystick-knob"></div>
+      </div>
+    </div>
+  </div>
+  
+  <div class="debug-panel" id="debug-panel">
+    <div>Car Position: <span id="car-position">(0, 0, 0)</span></div>
+    <div>Keys Pressed: <span id="keys-pressed">None</span></div>
+    <div>Canvas Focused: <span id="canvas-focused">No</span></div>
+    <button onclick="testCarMovement()" style="margin-top: 10px; padding: 5px 10px; background: #4CAF50; color: white; border: none; border-radius: 3px; cursor: pointer;">Test Movement</button>
+  </div>
+  
+  <div class="popup" id="about-popup">
+    <button class="close-btn" onclick="closePopup('about-popup')">&times;</button>
+    <h2>About Me</h2>
+    <p>Hello! I'm Tuhin SnapD, a passionate developer and creative technologist.</p>
+    <p>I specialize in creating immersive digital experiences using cutting-edge technologies like WebGL, Three.js, and Babylon.js.</p>
+    <p>When I'm not coding, you can find me exploring new technologies, contributing to open-source projects, or sharing knowledge with the developer community.</p>
+  </div>
+  
+  <div class="popup" id="projects-popup">
+    <button class="close-btn" onclick="closePopup('projects-popup')">&times;</button>
+    <h2>Projects</h2>
+    <p><strong>3D Portfolio</strong> - This interactive 3D portfolio built with Babylon.js</p>
+    <p><strong>WebGL Visualizer</strong> - Real-time data visualization using WebGL</p>
+    <p><strong>AR Experience</strong> - Augmented reality application for mobile devices</p>
+    <p><strong>Game Engine</strong> - Custom 3D game engine built from scratch</p>
+  </div>
+  
+  <div class="popup" id="resume-popup">
+    <button class="close-btn" onclick="closePopup('resume-popup')">&times;</button>
+    <h2>Resume</h2>
+    <p><strong>Experience:</strong></p>
+    <p>• Senior Frontend Developer - Tech Company (2022-Present)</p>
+    <p>• 3D Graphics Developer - Gaming Studio (2020-2022)</p>
+    <p>• Web Developer - Digital Agency (2018-2020)</p>
+    <br>
+    <p><strong>Skills:</strong></p>
+    <p>• JavaScript, TypeScript, WebGL, Three.js, Babylon.js</p>
+    <p>• React, Vue.js, Node.js, Python</p>
+    <p>• 3D Modeling, Game Development, AR/VR</p>
+  </div>
+  
+  <script type="module" src="/src/performance.js"></script>
+  <script type="module" src="/src/main.js"></script>
+  <script>
+    function closePopup(popupId) {
+      document.getElementById(popupId).style.display = 'none';
+    }
+    
+    function showPopup(popupId) {
+      document.getElementById(popupId).style.display = 'block';
+    }
+    
+    function testCarMovement() {
+      // This will be called by the global portfolio instance
+      if (window.portfolio3D) {
+        window.portfolio3D.testMovement();
+      }
+    }
+    
+    // Make functions globally available
+    window.closePopup = closePopup;
+    window.showPopup = showPopup;
+    window.testCarMovement = testCarMovement;
+  </script>
+</body>
+</html> 
