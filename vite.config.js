@@ -30,12 +30,6 @@ export default defineConfig({
     },
     rollupOptions: {
       output: {
-        manualChunks: {
-          three: ['three'],
-          gsap: ['gsap'],
-          lottie: ['lottie-web'],
-          vendor: ['three', 'gsap']
-        },
         assetFileNames: (assetInfo) => {
           const info = assetInfo.name.split('.')
           const ext = info[info.length - 1]
@@ -49,8 +43,6 @@ export default defineConfig({
     chunkSizeWarningLimit: 500
   },
   optimizeDeps: {
-    include: ['three', 'gsap'],
-    exclude: ['lottie-web'],
     // Add force option to force re-optimization
     force: true,
     // Add esbuild options for better compatibility

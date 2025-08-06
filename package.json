@@ -1,5 +1,5 @@
 {
-  "name": "3d-portfolio",
+  "name": "css-portfolio",
   "private": true,
   "version": "0.0.0",
   "type": "module",
@@ -20,8 +20,6 @@
     "vite-plugin-compression": "^0.5.1"
   },
   "dependencies": {
-    "gsap": "^3.13.0",
-    "lottie-web": "^5.13.0",
-    "three": "^0.158.0"
+    "three": "^0.179.1"
   }
 }
