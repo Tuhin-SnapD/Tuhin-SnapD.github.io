@@ -1,52 +1,40 @@
-# CSS Portfolio - Tuhin SnapD
+# 3D Car Driving Game - Tuhin SnapD
 
-An interactive personal portfolio built with pure CSS animations, featuring modern design, smooth transitions, and mobile-friendly interactions.
+An interactive 3D car driving experience built with Three.js, featuring realistic car physics, smooth controls, and immersive 3D graphics.
 
 ## 🚀 Features
 
-- **Pure CSS Animations**: Beautiful animations and transitions without any external libraries
-- **Interactive Zones**: Five themed areas (About Me, Projects, Resume, Contact, Skills)
-- **Responsive Design**: Optimized for both desktop and mobile devices
-- **Modern UI**: Glassmorphism effects and gradient backgrounds
-- **Performance Optimized**: Lightweight and fast loading
-- **GitHub Pages Ready**: Configured for easy deployment
+- **3D Car Model**: Detailed car with realistic proportions, including body, wheels, lights, and mirrors
+- **Physics-Based Movement**: Realistic acceleration, deceleration, and turning mechanics
+- **Smooth Camera Follow**: Dynamic third-person camera that follows the car
+- **Interactive Controls**: WASD keys for movement, spacebar for braking
+- **Real-time UI**: Live position, rotation, and speedometer display
+- **Responsive Design**: Works on both desktop and mobile devices
+- **Performance Optimized**: Smooth 60fps gameplay with optimized rendering
 
-## 🎨 Design Features
+## 🎮 Game Controls
 
-### Visual Elements
-- **Animated Background**: Dynamic gradient shifts and floating particles
-- **Interactive Zones**: Hover effects with scaling and rotation
-- **Glassmorphism**: Blur effects and transparent overlays
-- **Smooth Transitions**: CSS animations for all interactions
-- **Gradient Avatars**: Animated central avatar with pulsing effects
+- **W** - Accelerate forward
+- **S** - Reverse/brake
+- **A** - Turn left
+- **D** - Turn right
+- **SPACE** - Emergency brake
 
-### Interactive Elements
-- **Hover Effects**: Zones scale and rotate on hover
-- **Popup Modals**: Smooth slide-in animations for content
-- **Particle System**: Floating animated particles in the background
-- **Responsive Layout**: Adapts to different screen sizes
+## 🎨 Visual Features
 
-## 🏗️ Interactive Zones
+### Car Details
+- **Realistic Body**: Red car with detailed proportions
+- **Animated Wheels**: Wheels rotate based on speed
+- **Lighting System**: Headlights and taillights with emissive materials
+- **Windows**: Transparent windows with realistic reflections
+- **Mirrors**: Side mirrors for added detail
+- **Exhaust Pipes**: Dual exhaust system
 
-1. **About Me Zone** (Blue Gradient)
-   - Personal introduction and background
-   - Skills and interests
-
-2. **Projects Zone** (Orange Gradient)
-   - Showcase of key projects
-   - Technologies used
-
-3. **Resume Zone** (Green Gradient)
-   - Work experience
-   - Skills and qualifications
-
-4. **Contact Zone** (Purple Gradient)
-   - Contact information
-   - Social media links
-
-5. **Skills Zone** (Yellow Gradient)
-   - Technical skills grid
-   - Interactive skill cards
+### Environment
+- **3D Ground**: Large green plane as the driving surface
+- **Circular Road**: Dark road surface for better contrast
+- **Dynamic Lighting**: Ambient and directional lighting with shadows
+- **Sky Background**: Light blue sky for immersive atmosphere
 
 ## 🛠️ Setup & Installation
 
@@ -91,63 +79,33 @@ npm run deploy
 
 ```
 Tuhin-SnapD.github.io/
-├── index.html           # Main HTML file with CSS and JavaScript
+├── index.html           # Main HTML file with 3D game
 ├── package.json         # Dependencies and scripts
 ├── vite.config.js       # Vite configuration
+├── deploy.js           # Deployment script
 └── README.md           # This file
 ```
-
-## 🎨 Customization
-
-### Personal Information
-Edit the popup content in `index.html`:
-- About Me section
-- Projects section
-- Resume section
-- Contact information
-- Skills grid
-
-### Styling
-Customize the appearance in the `<style>` section of `index.html`:
-- Colors and gradient themes
-- Animation timings
-- Zone positions and sizes
-- Mobile responsiveness
-
-### Adding New Zones
-To add a new interactive zone:
-1. Add a new zone element in the HTML
-2. Style it with CSS gradients and animations
-3. Create a corresponding popup
-4. Add JavaScript event handlers
 
 ## 🔧 Technical Details
 
 ### Technologies Used
-- **Pure CSS3**: Animations, gradients, and modern styling
-- **Vanilla JavaScript**: Minimal JavaScript for interactions
+- **Three.js**: 3D graphics and rendering
+- **Vanilla JavaScript**: Game logic and controls
 - **Vite**: Build tool and development server
-- **HTML5**: Semantic markup
+- **HTML5**: Game container and UI
 
-### CSS Features Used
-- **CSS Grid & Flexbox**: Modern layout techniques
-- **CSS Animations**: Keyframes and transitions
-- **CSS Gradients**: Linear and radial gradients
-- **CSS Filters**: Blur and backdrop-filter effects
-- **CSS Variables**: For consistent theming
-- **Media Queries**: Responsive design
-
-### Performance Optimizations
-- No external dependencies
-- Optimized CSS animations
-- Efficient DOM manipulation
-- Mobile-first responsive design
+### Key Features
+- **WebGL Rendering**: Hardware-accelerated 3D graphics
+- **Shadow Mapping**: Realistic shadows for all objects
+- **Physics Simulation**: Custom physics for car movement
+- **Responsive Design**: Adapts to different screen sizes
+- **Performance Optimization**: Efficient rendering and updates
 
 ### Browser Support
 - Chrome/Edge (recommended)
 - Firefox
 - Safari
-- Mobile browsers (iOS Safari, Chrome Mobile)
+- Mobile browsers (with touch controls)
 
 ## 🚀 Deployment
 
@@ -156,12 +114,21 @@ The project is configured for GitHub Pages deployment:
 
 1. Push your changes to the main branch
 2. Run `npm run deploy`
-3. Your site will be available at `https://tuhin-snapd.github.io`
+3. Your game will be available at `https://tuhin-snapd.github.io`
 
 ### Other Hosting
 For other hosting providers:
 1. Run `npm run build`
 2. Upload the `dist` folder contents to your hosting service
+
+## 🎯 Future Enhancements
+
+- **Multiple Car Models**: Different car types and colors
+- **Track System**: Multiple tracks and obstacles
+- **Multiplayer**: Multiplayer racing capabilities
+- **Sound Effects**: Engine sounds and ambient audio
+- **Mobile Controls**: Touch-based controls for mobile devices
+- **Particle Effects**: Tire smoke and environmental effects
 
 ## 🤝 Contributing
 
@@ -177,7 +144,7 @@ This project is open source and available under the [MIT License](LICENSE).
 
 ## 🙏 Acknowledgments
 
-- CSS community for inspiration and techniques
+- Three.js community for the amazing 3D library
 - Vite team for the fast build tool
 - The open-source community for inspiration and tools
 
