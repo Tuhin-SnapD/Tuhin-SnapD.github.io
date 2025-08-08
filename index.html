@@ -144,8 +144,7 @@
     const renderer = new THREE.WebGLRenderer({ antialias: true });
     
     renderer.setSize(window.innerWidth, window.innerHeight);
-    renderer.shadowMap.enabled = true;
-    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    renderer.shadowMap.enabled = false; // Disable shadows
     renderer.setClearColor(0x87CEEB); // Sky blue background
     document.getElementById('gameContainer').appendChild(renderer.domElement);
 
@@ -155,9 +154,7 @@
 
     const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
     directionalLight.position.set(50, 50, 50);
-    directionalLight.castShadow = true;
-    directionalLight.shadow.mapSize.width = 2048;
-    directionalLight.shadow.mapSize.height = 2048;
+    directionalLight.castShadow = false; // Disable shadow casting
     scene.add(directionalLight);
 
     // Ground
@@ -168,7 +165,7 @@
     });
     const ground = new THREE.Mesh(groundGeometry, groundMaterial);
     ground.rotation.x = -Math.PI / 2;
-    ground.receiveShadow = true;
+    ground.receiveShadow = false; // Disable shadow receiving
     scene.add(ground);
 
     // Create a simple circular road
@@ -177,99 +174,189 @@
     const road = new THREE.Mesh(roadGeometry, roadMaterial);
     road.rotation.x = -Math.PI / 2;
     road.position.y = 0.1;
-    road.receiveShadow = true;
+    road.receiveShadow = false; // Disable shadow receiving
     scene.add(road);
+
+    // Create connecting road from car to circular path
+    const connectingRoadGeometry = new THREE.PlaneGeometry(8, 100);
+    const connectingRoad = new THREE.Mesh(connectingRoadGeometry, roadMaterial);
+    connectingRoad.rotation.x = -Math.PI / 2;
+    connectingRoad.position.set(0, 0.1, 50); // Position to connect from origin to circular road
+    connectingRoad.receiveShadow = false; // Disable shadow receiving
+    scene.add(connectingRoad);
+
+    // Add road markings (center line) on the connecting road
+    const centerLineGeometry = new THREE.PlaneGeometry(0.3, 100);
+    const centerLineMaterial = new THREE.MeshLambertMaterial({ color: 0xffffff });
+    const centerLine = new THREE.Mesh(centerLineGeometry, centerLineMaterial);
+    centerLine.rotation.x = -Math.PI / 2;
+    centerLine.position.set(0, 0.15, 50);
+    scene.add(centerLine);
+
+    // Add road edge lines on the connecting road
+    const edgeLineGeometry = new THREE.PlaneGeometry(0.2, 100);
+    const edgeLineMaterial = new THREE.MeshLambertMaterial({ color: 0xffffff });
+    
+    // Left edge line
+    const leftEdgeLine = new THREE.Mesh(edgeLineGeometry, edgeLineMaterial);
+    leftEdgeLine.rotation.x = -Math.PI / 2;
+    leftEdgeLine.position.set(-3.5, 0.15, 50);
+    scene.add(leftEdgeLine);
+    
+    // Right edge line
+    const rightEdgeLine = new THREE.Mesh(edgeLineGeometry, edgeLineMaterial);
+    rightEdgeLine.rotation.x = -Math.PI / 2;
+    rightEdgeLine.position.set(3.5, 0.15, 50);
+    scene.add(rightEdgeLine);
+
+    
+
+    
+
+
 
 
 
     // Car body
     const carGroup = new THREE.Group();
     
-    // Main body - more realistic proportions
-    const bodyGeometry = new THREE.BoxGeometry(3.5, 1.2, 7);
+    // Main body - F1 car design
+    const bodyGeometry = new THREE.BoxGeometry(2.0, 0.4, 4.5);
     const bodyMaterial = new THREE.MeshPhongMaterial({ 
       color: 0xff0000,
-      shininess: 100,
-      specular: 0x444444
+      shininess: 0,
+      specular: 0x000000
     });
     const body = new THREE.Mesh(bodyGeometry, bodyMaterial);
-    body.position.y = 1.2;
-    body.castShadow = true;
+    body.position.y = 1.0;
+    body.castShadow = false; // Disable shadow casting
     carGroup.add(body);
 
-    // Car roof - sleeker design
-    const roofGeometry = new THREE.BoxGeometry(2.8, 0.8, 3.5);
-    const roofMaterial = new THREE.MeshPhongMaterial({ 
+    // Front wing - F1 car design
+    const frontWingGeometry = new THREE.BoxGeometry(2.2, 0.1, 0.8);
+    const frontWingMaterial = new THREE.MeshPhongMaterial({ 
+      color: 0xdd0000,
+      shininess: 0,
+      specular: 0x000000
+    });
+    const frontWing = new THREE.Mesh(frontWingGeometry, frontWingMaterial);
+    frontWing.position.set(0, 0.2, 2.2);
+    frontWing.castShadow = false; // Disable shadow casting
+    carGroup.add(frontWing);
+
+    // Cockpit - F1 car design
+    const cockpitGeometry = new THREE.BoxGeometry(1.8, 0.3, 1.2);
+    const cockpitMaterial = new THREE.MeshPhongMaterial({ 
       color: 0xcc0000,
-      shininess: 100,
-      specular: 0x444444
+      shininess: 0,
+      specular: 0x000000
     });
-    const roof = new THREE.Mesh(roofGeometry, roofMaterial);
-    roof.position.set(0, 2.2, -0.8);
-    roof.castShadow = true;
-    carGroup.add(roof);
+    const cockpit = new THREE.Mesh(cockpitGeometry, cockpitMaterial);
+    cockpit.position.set(0, 0.6, 0);
+    cockpit.castShadow = false; // Disable shadow casting
+    carGroup.add(cockpit);
 
-    // Front bumper
-    const bumperGeometry = new THREE.BoxGeometry(3.2, 0.6, 0.8);
-    const bumperMaterial = new THREE.MeshPhongMaterial({ 
+    // Rear wing - F1 car design
+    const rearWingGeometry = new THREE.BoxGeometry(1.6, 0.8, 0.1);
+    const rearWingMaterial = new THREE.MeshPhongMaterial({ 
       color: 0x222222,
-      shininess: 50
+      shininess: 0,
+      specular: 0x000000
     });
-    const frontBumper = new THREE.Mesh(bumperGeometry, bumperMaterial);
-    frontBumper.position.set(0, 0.8, 3.8);
-    frontBumper.castShadow = true;
-    carGroup.add(frontBumper);
+    const rearWing = new THREE.Mesh(rearWingGeometry, rearWingMaterial);
+    rearWing.position.set(0, 0.8, -2.2);
+    rearWing.castShadow = false; // Disable shadow casting
+    carGroup.add(rearWing);
 
-    // Rear bumper
-    const rearBumper = new THREE.Mesh(bumperGeometry, bumperMaterial);
-    rearBumper.position.set(0, 0.8, -3.8);
-    rearBumper.castShadow = true;
-    carGroup.add(rearBumper);
+    // Front grille
+    const grilleGeometry = new THREE.BoxGeometry(2.2, 0.3, 0.1);
+    const grilleMaterial = new THREE.MeshPhongMaterial({ 
+      color: 0x111111,
+      shininess: 30
+    });
+    const grille = new THREE.Mesh(grilleGeometry, grilleMaterial);
+    grille.position.set(0, 0.8, 3.1);
+    grille.castShadow = false; // Disable shadow casting
+    carGroup.add(grille);
 
-    // Wheels with better detail
-    const wheelGeometry = new THREE.CylinderGeometry(0.7, 0.7, 0.4, 16);
+
+
+    // Wheels with F1 car detail
+    const wheelGeometry = new THREE.CylinderGeometry(0.8, 0.8, 0.2, 32);
     const wheelMaterial = new THREE.MeshPhongMaterial({ 
       color: 0x222222,
-      shininess: 30
+      shininess: 0,
+      specular: 0x000000
+    });
+
+    // Wheel rims - F1 car style
+    const rimGeometry = new THREE.CylinderGeometry(0.65, 0.65, 0.3, 24);
+    const rimMaterial = new THREE.MeshPhongMaterial({ 
+      color: 0x666666,
+      shininess: 0,
+      specular: 0x000000
     });
     
     const wheels = [];
     const wheelPositions = [
-      [-1.8, 0.7, 2.2],   // Front left
-      [1.8, 0.7, 2.2],    // Front right
-      [-1.8, 0.7, -2.2],  // Back left
-      [1.8, 0.7, -2.2]    // Back right
+      [-0.9, 0.8, 1.4],   // Front left
+      [0.9, 0.8, 1.4],    // Front right
+      [-0.9, 0.8, -1.4],  // Back left
+      [0.9, 0.8, -1.4]    // Back right
     ];
     
     wheelPositions.forEach((position, index) => {
       const wheel = new THREE.Mesh(wheelGeometry, wheelMaterial);
       wheel.rotation.z = Math.PI / 2;
       wheel.position.set(...position);
-      wheel.castShadow = true;
+      wheel.castShadow = false; // Disable shadow casting
       carGroup.add(wheel);
       wheels.push(wheel);
+
+      // Add rim to each wheel
+      const rim = new THREE.Mesh(rimGeometry, rimMaterial);
+      rim.rotation.z = Math.PI / 2;
+      rim.position.set(...position);
+      rim.castShadow = false; // Disable shadow casting
+      carGroup.add(rim);
     });
 
-    // Headlights - more realistic
-    const headlightGeometry = new THREE.SphereGeometry(0.25, 16, 16);
+    // Headlights - sporty design (no reflections)
+    const headlightGeometry = new THREE.SphereGeometry(0.25, 20, 20);
     const headlightMaterial = new THREE.MeshPhongMaterial({ 
       color: 0xffffcc,
       emissive: 0xffffcc,
-      emissiveIntensity: 0.3,
-      shininess: 200,
-      specular: 0xffffff
+      emissiveIntensity: 0.4,
+      shininess: 0,
+      specular: 0x000000
+    });
+
+    // Headlight housing
+    const headlightHousingGeometry = new THREE.BoxGeometry(0.35, 0.35, 0.1);
+    const headlightHousingMaterial = new THREE.MeshPhongMaterial({ 
+      color: 0x333333,
+      shininess: 50
     });
     
     const headlight1 = new THREE.Mesh(headlightGeometry, headlightMaterial);
-    headlight1.position.set(-1.2, 1.2, 3.6);
+    headlight1.position.set(-1.0, 1.0, 3.0);
     carGroup.add(headlight1);
     
     const headlight2 = new THREE.Mesh(headlightGeometry, headlightMaterial);
-    headlight2.position.set(1.2, 1.2, 3.6);
+    headlight2.position.set(1.0, 1.0, 3.0);
     carGroup.add(headlight2);
 
+    // Add headlight housings
+    const headlightHousing1 = new THREE.Mesh(headlightHousingGeometry, headlightHousingMaterial);
+    headlightHousing1.position.set(-1.0, 1.0, 3.1);
+    carGroup.add(headlightHousing1);
+    
+    const headlightHousing2 = new THREE.Mesh(headlightHousingGeometry, headlightHousingMaterial);
+    headlightHousing2.position.set(1.0, 1.0, 3.1);
+    carGroup.add(headlightHousing2);
+
     // Taillights
-    const taillightGeometry = new THREE.SphereGeometry(0.2, 16, 16);
+    const taillightGeometry = new THREE.SphereGeometry(0.18, 16, 16);
     const taillightMaterial = new THREE.MeshPhongMaterial({ 
       color: 0xff0000,
       emissive: 0xff0000,
@@ -278,75 +365,105 @@
     });
     
     const taillight1 = new THREE.Mesh(taillightGeometry, taillightMaterial);
-    taillight1.position.set(-1.2, 1.2, -3.6);
+    taillight1.position.set(-1.0, 1.0, -2.6);
     carGroup.add(taillight1);
     
     const taillight2 = new THREE.Mesh(taillightGeometry, taillightMaterial);
-    taillight2.position.set(1.2, 1.2, -3.6);
+    taillight2.position.set(1.0, 1.0, -2.6);
     carGroup.add(taillight2);
 
-    // Windows - more realistic
-    const windowGeometry = new THREE.PlaneGeometry(2.2, 0.6);
+    // Windows - sporty design (no reflections)
+    const windowGeometry = new THREE.PlaneGeometry(1.8, 0.5);
     const windowMaterial = new THREE.MeshPhongMaterial({ 
       color: 0x87CEEB,
       transparent: true,
-      opacity: 0.6,
-      shininess: 200,
-      specular: 0xffffff
+      opacity: 0.5,
+      shininess: 0,
+      specular: 0x000000
+    });
+
+    // Window frames
+    const windowFrameGeometry = new THREE.PlaneGeometry(2.0, 0.7);
+    const windowFrameMaterial = new THREE.MeshPhongMaterial({ 
+      color: 0x222222,
+      shininess: 50
     });
     
     const frontWindow = new THREE.Mesh(windowGeometry, windowMaterial);
-    frontWindow.position.set(0, 2.2, 1.2);
+    frontWindow.position.set(0, 1.8, 1.0);
     carGroup.add(frontWindow);
     
     const backWindow = new THREE.Mesh(windowGeometry, windowMaterial);
-    backWindow.position.set(0, 2.2, -2.8);
+    backWindow.position.set(0, 1.8, -2.2);
     backWindow.rotation.y = Math.PI;
     carGroup.add(backWindow);
 
+    // Add window frames
+    const frontWindowFrame = new THREE.Mesh(windowFrameGeometry, windowFrameMaterial);
+    frontWindowFrame.position.set(0, 1.8, 1.0);
+    carGroup.add(frontWindowFrame);
+    
+    const backWindowFrame = new THREE.Mesh(windowFrameGeometry, windowFrameMaterial);
+    backWindowFrame.position.set(0, 1.8, -2.2);
+    backWindowFrame.rotation.y = Math.PI;
+    carGroup.add(backWindowFrame);
+
     // Side windows
-    const sideWindowGeometry = new THREE.PlaneGeometry(0.5, 0.6);
+    const sideWindowGeometry = new THREE.PlaneGeometry(0.4, 0.4);
     const sideWindow1 = new THREE.Mesh(sideWindowGeometry, windowMaterial);
-    sideWindow1.position.set(1.75, 2.2, 0);
+    sideWindow1.position.set(1.4, 1.6, 0);
     sideWindow1.rotation.y = Math.PI / 2;
     carGroup.add(sideWindow1);
     
     const sideWindow2 = new THREE.Mesh(sideWindowGeometry, windowMaterial);
-    sideWindow2.position.set(-1.75, 2.2, 0);
+    sideWindow2.position.set(-1.4, 1.6, 0);
     sideWindow2.rotation.y = -Math.PI / 2;
     carGroup.add(sideWindow2);
 
     // Side mirrors
-    const mirrorGeometry = new THREE.BoxGeometry(0.1, 0.3, 0.2);
+    const mirrorGeometry = new THREE.BoxGeometry(0.08, 0.25, 0.15);
     const mirrorMaterial = new THREE.MeshPhongMaterial({ 
       color: 0x222222,
       shininess: 100
     });
     
     const leftMirror = new THREE.Mesh(mirrorGeometry, mirrorMaterial);
-    leftMirror.position.set(-1.9, 1.8, 0.5);
+    leftMirror.position.set(-1.4, 1.4, 0.3);
     carGroup.add(leftMirror);
     
     const rightMirror = new THREE.Mesh(mirrorGeometry, mirrorMaterial);
-    rightMirror.position.set(1.9, 1.8, 0.5);
+    rightMirror.position.set(1.4, 1.4, 0.3);
     carGroup.add(rightMirror);
 
     // Exhaust pipes
-    const exhaustGeometry = new THREE.CylinderGeometry(0.08, 0.08, 0.6, 8);
+    const exhaustGeometry = new THREE.CylinderGeometry(0.06, 0.06, 0.5, 8);
     const exhaustMaterial = new THREE.MeshPhongMaterial({ 
       color: 0x444444,
       shininess: 50
     });
     
     const exhaust1 = new THREE.Mesh(exhaustGeometry, exhaustMaterial);
-    exhaust1.position.set(-0.8, 0.3, -3.8);
+    exhaust1.position.set(-0.6, 0.3, -2.8);
     exhaust1.rotation.x = Math.PI / 2;
     carGroup.add(exhaust1);
     
     const exhaust2 = new THREE.Mesh(exhaustGeometry, exhaustMaterial);
-    exhaust2.position.set(0.8, 0.3, -3.8);
+    exhaust2.position.set(0.6, 0.3, -2.8);
     exhaust2.rotation.x = Math.PI / 2;
     carGroup.add(exhaust2);
+
+    // Steering wheel for F1 car
+    const steeringWheelGeometry = new THREE.TorusGeometry(0.3, 0.05, 8, 16);
+    const steeringWheelMaterial = new THREE.MeshPhongMaterial({ 
+      color: 0x333333,
+      shininess: 0,
+      specular: 0x000000
+    });
+    
+    const steeringWheel = new THREE.Mesh(steeringWheelGeometry, steeringWheelMaterial);
+    steeringWheel.position.set(0, 0.7, 0.3);
+    steeringWheel.rotation.x = Math.PI / 2;
+    carGroup.add(steeringWheel);
 
     scene.add(carGroup);
 
@@ -354,16 +471,20 @@
     camera.position.set(0, 8, 15);
     camera.lookAt(carGroup.position);
 
-    // Car physics and controls
+    // F1 car physics and controls
     const car = {
       position: new THREE.Vector3(0, 0, 0),
       velocity: new THREE.Vector3(0, 0, 0),
       rotation: 0,
       speed: 0,
-      maxSpeed: 2.5,
-      acceleration: 0.05,
-      deceleration: 0.01,
-      turnSpeed: 0.06,
+      maxSpeed: 150.0, // F1 car top speed (150 units)
+      acceleration: 0.25, // Extremely fast acceleration
+      deceleration: 0.15, // Strong braking
+      turnSpeed: 0.12, // Responsive steering
+      width: 2.0, // F1 car width (narrower)
+      engineRPM: 0, // Engine RPM for realistic sound simulation
+      gear: 1, // Current gear
+      steeringAngle: 0, // Steering wheel angle
       keys: {
         w: false,
         a: false,
@@ -372,6 +493,12 @@
         space: false
       }
     };
+
+    // Collision detection function - disabled since no railings
+    function checkCollision(newPosition) {
+      // No railings, so no collision detection needed
+      return false;
+    }
 
     // Keyboard controls
     document.addEventListener('keydown', (event) => {
@@ -418,18 +545,87 @@
         car.rotation -= car.turnSpeed * (car.speed / car.maxSpeed);
       }
       
-      // Update car position
-      car.position.x += Math.sin(car.rotation) * car.speed;
-      car.position.z += Math.cos(car.rotation) * car.speed;
+      // Update car position with collision detection
+      const newPosition = car.position.clone();
+      newPosition.x += Math.sin(car.rotation) * car.speed;
+      newPosition.z += Math.cos(car.rotation) * car.speed;
+      
+      // Check for collisions before updating position
+      if (!checkCollision(newPosition)) {
+        car.position.copy(newPosition);
+      } else {
+        // Collision detected - reduce speed and prevent movement
+        car.speed *= 0.5; // Reduce speed on collision
+      }
       
       // Update car group position and rotation
       carGroup.position.copy(car.position);
       carGroup.rotation.y = car.rotation;
       
-      // Rotate wheels
+            // F1 car animations
+      const time = Date.now() * 0.001; // Time in seconds
+      const speedFactor = car.speed / car.maxSpeed;
+
+      // Minimal suspension movement for F1 car
+      if (car.speed > 0.1) {
+        const suspensionMovement = Math.sin(time * 20) * 0.02 * speedFactor;
+        carGroup.position.y = car.position.y + suspensionMovement;
+      }
+
+      // F1 car body roll when turning
+      if (car.keys.a || car.keys.d) {
+        const rollAngle = (car.keys.a ? 1 : -1) * 0.05 * speedFactor;
+        carGroup.rotation.z = rollAngle;
+      } else {
+        carGroup.rotation.z *= 0.9; // Smooth return to normal
+      }
+
+      // F1 car pitch based on acceleration/braking
+      if (car.keys.w && car.speed > 0.5) {
+        carGroup.rotation.x = -0.02 * speedFactor; // Minimal squat when accelerating
+      } else if (car.keys.s || car.keys.space) {
+        carGroup.rotation.x = 0.03 * speedFactor; // Minimal dive when braking
+      } else {
+        carGroup.rotation.x *= 0.9; // Smooth return to normal
+      }
+
+      // Steering wheel rotation
+      if (car.keys.a || car.keys.d) {
+        car.steeringAngle += (car.keys.a ? -1 : 1) * 0.1;
+        car.steeringAngle = Math.max(-0.5, Math.min(0.5, car.steeringAngle)); // Limit steering angle
+        steeringWheel.rotation.z = car.steeringAngle;
+      } else {
+        car.steeringAngle *= 0.8; // Return to center
+        steeringWheel.rotation.z = car.steeringAngle;
+      }
+
+      // Fast wheel rotation for F1 car
       wheels.forEach(wheel => {
-        wheel.rotation.x += car.speed * 2;
+        wheel.rotation.x += car.speed * 5; // Very fast wheel rotation for F1
       });
+
+      // High RPM simulation for F1 engine
+      car.engineRPM = car.speed * 2000 + Math.random() * 500; // High RPM range
+
+      // Headlight intensity based on speed
+      if (car.speed > 0.5) {
+        const headlightIntensity = 0.6 + Math.sin(time * 10) * 0.05;
+        headlight1.material.emissiveIntensity = headlightIntensity;
+        headlight2.material.emissiveIntensity = headlightIntensity;
+      } else {
+        headlight1.material.emissiveIntensity = 0.6;
+        headlight2.material.emissiveIntensity = 0.6;
+      }
+
+      // Exhaust glow based on engine load
+      if (car.speed > 0.3) {
+        const exhaustGlow = 0.4 + Math.sin(time * 15) * 0.1;
+        taillight1.material.emissiveIntensity = exhaustGlow;
+        taillight2.material.emissiveIntensity = exhaustGlow;
+      } else {
+        taillight1.material.emissiveIntensity = 0.4;
+        taillight2.material.emissiveIntensity = 0.4;
+      }
       
       // Update camera to follow car from behind with smooth following
       const cameraOffset = new THREE.Vector3(
