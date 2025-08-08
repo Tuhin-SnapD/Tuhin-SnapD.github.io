@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>3D Car Driving - Tuhin SnapD</title>
+  <meta name="description" content="3D Car Driving Experience with WASD Controls">
+  <meta name="theme-color" content="#1a1a1a">
+  <link rel="icon" type="image/x-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🚗</text></svg>">
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      font-family: 'Arial', sans-serif;
+      background: #000;
+      overflow: hidden;
+      touch-action: none;
+      height: 100vh;
+      position: relative;
+    }
+    
+    #gameContainer {
+      width: 100vw;
+      height: 100vh;
+      position: relative;
+    }
+    
+    #ui {
+      position: absolute;
+      top: 20px;
+      left: 20px;
+      color: white;
+      font-size: 18px;
+      z-index: 100;
+      background: rgba(0, 0, 0, 0.7);
+      padding: 15px;
+      border-radius: 10px;
+      backdrop-filter: blur(10px);
+    }
+    
+    #controls {
+      position: absolute;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      color: white;
+      font-size: 16px;
+      z-index: 100;
+      background: rgba(0, 0, 0, 0.7);
+      padding: 15px;
+      border-radius: 10px;
+      backdrop-filter: blur(10px);
+      text-align: center;
+    }
+    
+    #speedometer {
+      position: absolute;
+      bottom: 20px;
+      right: 20px;
+      color: white;
+      font-size: 24px;
+      z-index: 100;
+      background: rgba(0, 0, 0, 0.7);
+      padding: 15px;
+      border-radius: 10px;
+      backdrop-filter: blur(10px);
+      min-width: 120px;
+      text-align: center;
+    }
+    
+    .loading {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      color: white;
+      font-size: 24px;
+      z-index: 2000;
+      background: rgba(0, 0, 0, 0.9);
+      padding: 30px 50px;
+      border-radius: 15px;
+      backdrop-filter: blur(10px);
+    }
+    
+    .loading::after {
+      content: '';
+      display: inline-block;
+      width: 30px;
+      height: 30px;
+      border: 3px solid transparent;
+      border-top: 3px solid #00ff88;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      margin-left: 15px;
+    }
+    
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+    
+    .key {
+      display: inline-block;
+      background: rgba(255, 255, 255, 0.2);
+      padding: 5px 10px;
+      border-radius: 5px;
+      margin: 0 5px;
+      font-weight: bold;
+      border: 1px solid rgba(255, 255, 255, 0.3);
+    }
+  </style>
+</head>
+<body>
+  <div class="loading" id="loading">Loading 3D Car Experience...</div>
+  
+  <div id="gameContainer">
+    <div id="ui">
+      <div>Position: <span id="position">0, 0, 0</span></div>
+      <div>Rotation: <span id="rotation">0°</span></div>
+    </div>
+    
+    <div id="controls">
+      <div><span class="key">W</span> Forward | <span class="key">S</span> Backward</div>
+      <div><span class="key">A</span> Left | <span class="key">D</span> Right</div>
+      <div><span class="key">SPACE</span> Brake</div>
+    </div>
+    
+    <div id="speedometer">
+      <div id="speed">0</div>
+      <div style="font-size: 12px;">KM/H</div>
+    </div>
+  </div>
+
+  <script type="module" src="/src/main.js"></script>
+</body>
+</html>

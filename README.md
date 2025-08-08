@@ -1,153 +1,74 @@
-# 3D Car Driving Game - Tuhin SnapD
+# 3D Car Driving Game
 
-An interactive 3D car driving experience built with Three.js, featuring realistic car physics, smooth controls, and immersive 3D graphics.
+A 3D car driving experience built with Three.js and Vite.
 
-## 🚀 Features
+## Features
 
-- **3D Car Model**: Detailed car with realistic proportions, including body, wheels, lights, and mirrors
-- **Physics-Based Movement**: Realistic acceleration, deceleration, and turning mechanics
-- **Smooth Camera Follow**: Dynamic third-person camera that follows the car
-- **Interactive Controls**: WASD keys for movement, spacebar for braking
-- **Real-time UI**: Live position, rotation, and speedometer display
-- **Responsive Design**: Works on both desktop and mobile devices
-- **Performance Optimized**: Smooth 60fps gameplay with optimized rendering
+- Realistic 3D car model with detailed components
+- WASD controls for driving
+- Real-time speedometer and position tracking
+- Smooth camera following
+- Responsive design
 
-## 🎮 Game Controls
+## Quick Start
 
-- **W** - Accelerate forward
-- **S** - Reverse/brake
-- **A** - Turn left
-- **D** - Turn right
-- **SPACE** - Emergency brake
+### Option 1: Development with Vite (Recommended)
 
-## 🎨 Visual Features
+1. Install dependencies:
+```bash
+npm install
+```
 
-### Car Details
-- **Realistic Body**: Red car with detailed proportions
-- **Animated Wheels**: Wheels rotate based on speed
-- **Lighting System**: Headlights and taillights with emissive materials
-- **Windows**: Transparent windows with realistic reflections
-- **Mirrors**: Side mirrors for added detail
-- **Exhaust Pipes**: Dual exhaust system
+2. Start the development server:
+```bash
+npm run dev
+```
 
-### Environment
-- **3D Ground**: Large green plane as the driving surface
-- **Circular Road**: Dark road surface for better contrast
-- **Dynamic Lighting**: Ambient and directional lighting with shadows
-- **Sky Background**: Light blue sky for immersive atmosphere
+3. Open your browser and navigate to `http://localhost:3000`
 
-## 🛠️ Setup & Installation
+### Option 2: Direct HTML (CDN)
 
-### Prerequisites
-- Node.js (v16 or higher)
-- npm or yarn
+If you want to run the HTML file directly without Vite:
 
-### Installation
+1. Open `index.html` in your browser
+2. The game uses Three.js from CDN and should work immediately
 
-1. **Clone the repository**
-   ```bash
-   git clone https://github.com/Tuhin-SnapD/Tuhin-SnapD.github.io.git
-   cd Tuhin-SnapD.github.io
-   ```
+## Controls
 
-2. **Install dependencies**
-   ```bash
-   npm install
-   ```
+- **W** - Forward
+- **S** - Backward  
+- **A** - Turn Left
+- **D** - Turn Right
+- **SPACE** - Brake
 
-3. **Start development server**
-   ```bash
-   npm run dev
-   ```
-
-4. **Open your browser**
-   Navigate to `http://localhost:3000`
-
-### Build for Production
+## Build for Production
 
 ```bash
 npm run build
 ```
 
-### Deploy to GitHub Pages
+## Deploy to GitHub Pages
 
 ```bash
 npm run deploy
 ```
 
-## 📁 Project Structure
+## Troubleshooting
 
-```
-Tuhin-SnapD.github.io/
-├── index.html           # Main HTML file with 3D game
-├── package.json         # Dependencies and scripts
-├── vite.config.js       # Vite configuration
-├── deploy.js           # Deployment script
-└── README.md           # This file
-```
+### Module Resolution Issues
 
-## 🔧 Technical Details
+If you see errors like "Failed to resolve module specifier 'three'", make sure you're:
 
-### Technologies Used
-- **Three.js**: 3D graphics and rendering
-- **Vanilla JavaScript**: Game logic and controls
-- **Vite**: Build tool and development server
-- **HTML5**: Game container and UI
+1. Using the development server (`npm run dev`) instead of opening the HTML file directly
+2. Or using the CDN version in `index.html` for direct file access
 
-### Key Features
-- **WebGL Rendering**: Hardware-accelerated 3D graphics
-- **Shadow Mapping**: Realistic shadows for all objects
-- **Physics Simulation**: Custom physics for car movement
-- **Responsive Design**: Adapts to different screen sizes
-- **Performance Optimization**: Efficient rendering and updates
+### Performance Issues
 
-### Browser Support
-- Chrome/Edge (recommended)
-- Firefox
-- Safari
-- Mobile browsers (with touch controls)
+- The game is optimized for modern browsers with WebGL support
+- Lower-end devices may experience reduced performance
 
-## 🚀 Deployment
+## Technologies Used
 
-### GitHub Pages
-The project is configured for GitHub Pages deployment:
-
-1. Push your changes to the main branch
-2. Run `npm run deploy`
-3. Your game will be available at `https://tuhin-snapd.github.io`
-
-### Other Hosting
-For other hosting providers:
-1. Run `npm run build`
-2. Upload the `dist` folder contents to your hosting service
-
-## 🎯 Future Enhancements
-
-- **Multiple Car Models**: Different car types and colors
-- **Track System**: Multiple tracks and obstacles
-- **Multiplayer**: Multiplayer racing capabilities
-- **Sound Effects**: Engine sounds and ambient audio
-- **Mobile Controls**: Touch-based controls for mobile devices
-- **Particle Effects**: Tire smoke and environmental effects
-
-## 🤝 Contributing
-
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Test thoroughly
-5. Submit a pull request
-
-## 📄 License
-
-This project is open source and available under the [MIT License](LICENSE).
-
-## 🙏 Acknowledgments
-
-- Three.js community for the amazing 3D library
-- Vite team for the fast build tool
-- The open-source community for inspiration and tools
-
----
-
-**Built with ❤️ by Tuhin SnapD** 
+- Three.js - 3D graphics library
+- Vite - Build tool and development server
+- Vanilla JavaScript - Game logic and controls 
