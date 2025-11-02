@@ -1,117 +1,238 @@
-# 3D Car Driving Game - Tuhin SnapD
+# Interactive Portfolio Game
 
-A 3D car driving experience built with Three.js featuring realistic car physics, WASD controls, and a beautiful 3D environment.
+An interactive portfolio experience built with Phaser.js. Navigate through different zones representing your life journey, skills, projects, and achievements.
 
-## 🚗 Features
+## 🎮 Features
 
-- **Realistic 3D Car Model**: Detailed car with body, roof, wheels, headlights, taillights, windows, mirrors, and exhaust pipes
-- **Smooth Physics**: Realistic acceleration, deceleration, and turning mechanics
-- **Dynamic Camera**: Third-person camera that follows the car smoothly
-- **Interactive Controls**: WASD for movement, SPACE for braking
-- **Real-time UI**: Position, rotation, and speedometer display
-- **Beautiful Environment**: Green ground with a circular road track
-- **Responsive Design**: Works on different screen sizes
+- **Interactive World Map**: Explore zones representing different life stages
+- **Player Movement**: Smooth character movement with idle and walk animations
+- **Zone Interactions**: Enter zones to learn about different periods and achievements
+- **Modal Dialogs**: Beautiful pixel-style modals with information and links
+- **Mobile Support**: Touch controls for mobile devices
+- **LocalStorage**: Tracks visited zones
+- **Background Music**: Optional chill background music with toggle
+- **Resume Download**: Quick access to resume from UI
 
-## 🎮 Controls
+## 🛠 Tech Stack
 
-- **W** - Move forward
-- **S** - Move backward  
-- **A** - Turn left
-- **D** - Turn right
-- **SPACE** - Brake
-
-## 🛠️ Setup & Installation
-
-### Option 1: CDN Version (Recommended for quick start)
-
-1. Simply open `index.html` in your browser
-2. The game uses Three.js loaded from CDN (jsDelivr)
-
-### Option 2: Local Development with Vite
-
-1. Install dependencies:
-   ```bash
-   npm install
-   ```
-
-2. Start the development server:
-   ```bash
-   npm run dev
-   ```
-
-3. Open `http://localhost:3000` in your browser
-
-4. For the Vite version, use `index-vite.html` which imports Three.js from local node_modules
-
-## 🔧 Build & Deploy
-
-### Build for Production
-```bash
-npm run build
-```
-
-### Deploy to GitHub Pages
-```bash
-npm run deploy
-```
-
-## 🐛 Troubleshooting
-
-### Three.js Build Error Fix
-
-If you encounter the error:
-```
-Uncaught Error: [Package Error] "three@v0.179.1" could not be built.
-```
-
-**Solution**: The project has been updated to use Three.js version 0.158.0 which is more stable and compatible with CDN services.
-
-**Changes made**:
-- Updated `package.json` to use `"three": "^0.158.0"`
-- Updated CDN import in `index.html` to use jsDelivr: `https://cdn.jsdelivr.net/npm/three@0.158.0/build/three.module.js`
-
-### Alternative Solutions
-
-1. **Use Local Three.js**: The `src/main.js` file imports Three.js from local node_modules, avoiding CDN issues
-2. **Different CDN**: If one CDN fails, try others like:
-   - jsDelivr: `https://cdn.jsdelivr.net/npm/three@0.158.0/build/three.module.js`
-   - unpkg: `https://unpkg.com/three@0.158.0/build/three.module.js`
-   - Skypack: `https://cdn.skypack.dev/three@0.158.0`
+- **Phaser.js 3.70**: Game framework
+- **Vite**: Build tool and dev server
+- **Vanilla JavaScript**: ES Modules, no React
+- **Tiled Map Editor**: (Optional) For creating custom maps
 
 ## 📁 Project Structure
 
 ```
-Tuhin-SnapD.github.io/
-├── index.html              # CDN version (standalone)
-├── index-vite.html         # Vite version (uses local Three.js)
+portfolio-game/
+├── public/
+│   ├── index.html          # Main HTML file
+│   └── data/
+│       ├── mapData.json    # World map configuration
+│       └── locations.json  # Zone content data
 ├── src/
-│   └── main.js            # Three.js game logic
-├── package.json           # Dependencies and scripts
-├── vite.config.js         # Vite configuration
-└── README.md              # This file
+│   ├── main.js            # Game entry point
+│   └── scenes/
+│       ├── preload.js     # Asset loading scene
+│       ├── worldScene.js  # Main game world scene
+│       └── uiScene.js     # Modal/dialog UI scene
+├── package.json
+├── vite.config.js
+└── README.md
 ```
 
-## 🎨 Technical Details
+## 🚀 Getting Started
 
-- **3D Engine**: Three.js for 3D graphics
-- **Physics**: Custom physics system for realistic car movement
-- **Materials**: Phong materials for realistic lighting and reflections
-- **Shadows**: PCF soft shadow mapping for realistic shadows
-- **Performance**: Optimized rendering with proper geometry and material usage
+### Prerequisites
 
-## 🌟 Future Enhancements
+- Node.js 16+ and npm
 
-- [ ] Multiple car models
-- [ ] Different tracks and environments
-- [ ] Sound effects and music
-- [ ] Mobile touch controls
-- [ ] Multiplayer support
-- [ ] Car customization options
+### Installation
+
+1. Clone or download this repository
+2. Install dependencies:
+
+```bash
+npm install
+```
+
+### Development
+
+Start the development server:
+
+```bash
+npm run dev
+```
+
+The game will open in your browser at `http://localhost:3000`
+
+### Build for Production
+
+```bash
+npm run build
+```
+
+This creates a `dist/` folder with optimized production files.
+
+## 📦 Deployment to GitHub Pages
+
+### Method 1: Automatic Deployment via GitHub Actions (Recommended)
+
+1. Push your code to a GitHub repository
+2. Create `.github/workflows/deploy.yml`:
+
+```yaml
+name: Deploy to GitHub Pages
+
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+      - run: npm install
+      - run: npm run build
+      - uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./dist
+```
+
+3. Go to your repository Settings → Pages → Source: select "GitHub Actions"
+4. Push to main branch - deployment will happen automatically
+
+### Method 2: Manual Deployment
+
+1. Build the project:
+```bash
+npm run build
+```
+
+2. In your repository settings, enable GitHub Pages (Settings → Pages)
+
+3. Set source to deploy from `gh-pages` branch or `main` branch `/docs` folder
+
+4. Copy the contents of `dist/` to your GitHub Pages directory:
+   - If using `gh-pages` branch: push `dist/` contents to that branch
+   - If using `/docs`: copy `dist/` contents to a `docs/` folder in your repo
+
+### Important: Update Base Path
+
+If your repository name is not exactly `Tuhin-SnapD.github.io`, update the base path in `vite.config.js`:
+
+```js
+export default defineConfig({
+  base: '/your-repo-name/',  // Change this to your repo name
+  // ... rest of config
+});
+```
+
+## 🎨 Customization
+
+### Editing Zone Content
+
+Edit `public/data/locations.json` to update zone descriptions, links, and skills:
+
+```json
+{
+  "current": {
+    "title": "Current Stage",
+    "description": "Your current role and focus...",
+    "year": "2020-Present",
+    "links": [
+      {
+        "text": "GitHub",
+        "url": "https://github.com/yourusername",
+        "icon": "github"
+      }
+    ]
+  }
+}
+```
+
+### Customizing the Map
+
+Edit `public/data/mapData.json` to change zone positions and sizes:
+
+```json
+{
+  "width": 40,
+  "height": 30,
+  "zones": [
+    {
+      "id": "childhood",
+      "x": 5,
+      "y": 5,
+      "width": 5,
+      "height": 5
+    }
+  ]
+}
+```
+
+### Adding Custom Sprites
+
+Replace placeholder sprites by:
+1. Create your sprite images (PNG format, pixel art recommended)
+2. Place them in `public/assets/player/`
+3. Update `src/scenes/preload.js` to load your sprites instead of generating them
+
+### Using Tiled Map Editor
+
+1. Install [Tiled Map Editor](https://www.mapeditor.org/)
+2. Create your map and export as JSON
+3. Place exported JSON in `public/assets/maps/`
+4. Update `preload.js` to load the Tiled map:
+
+```js
+this.load.tilemapTiledJSON('map', 'assets/maps/your-map.json');
+```
+
+## 🎮 Controls
+
+- **Arrow Keys / WASD**: Move player
+- **E Key**: Interact with zones
+- **ESC**: Close modal dialogs
+- **Mobile**: Touch controls appear automatically on touch devices
+
+## 📝 Notes
+
+- The game uses localStorage to remember visited zones
+- Music preference is saved in localStorage
+- All links open in new tabs
+- The game is responsive and works on mobile and desktop
+
+## 🔧 Troubleshooting
+
+**Game doesn't load:**
+- Check browser console for errors
+- Ensure all JSON files are valid
+- Verify base path in `vite.config.js` matches your repo name
+
+**Assets not loading:**
+- Make sure files are in `public/` folder (not `src/`)
+- Check file paths in preload scene
+- Clear browser cache
+
+**Build fails:**
+- Delete `node_modules` and `package-lock.json`
+- Run `npm install` again
+- Check Node.js version (requires 16+)
 
 ## 📄 License
 
-This project is open source and available under the MIT License.
+Free to use and modify for your portfolio.
+
+## 🙏 Credits
+
+Built with [Phaser.js](https://phaser.io/) game framework.
 
 ---
 
-**Created by Tuhin SnapD** 🚗✨ 
+**Enjoy building your interactive portfolio!** 🎉
+

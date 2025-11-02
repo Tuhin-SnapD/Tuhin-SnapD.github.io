@@ -1,0 +1,76 @@
+{
+  "childhood": {
+    "title": "Childhood",
+    "description": "Born and raised in [Your City]. My early years were filled with curiosity about technology and a love for video games. This is where my journey into programming began.",
+    "year": "1990s-2000s",
+    "links": []
+  },
+  "school": {
+    "title": "High School",
+    "description": "Attended [School Name] where I excelled in mathematics and science. Discovered my passion for computer science and started learning programming basics.",
+    "year": "2010-2014",
+    "links": []
+  },
+  "college": {
+    "title": "University",
+    "description": "Studied Computer Science at [University Name]. Specialized in software engineering and web development. Graduated with honors and multiple projects under my belt.",
+    "year": "2014-2018",
+    "links": []
+  },
+  "firstJob": {
+    "title": "First Professional Role",
+    "description": "My first job as a [Job Title] at [Company]. Learned industry best practices, worked on production applications, and gained valuable experience in agile development.",
+    "year": "2018-2020",
+    "links": []
+  },
+  "current": {
+    "title": "Current Stage",
+    "description": "Currently working as a [Your Role] at [Company]. Focused on [Technologies/Skills]. Always learning, always building, always improving.",
+    "year": "2020-Present",
+    "links": []
+  },
+  "skills": {
+    "title": "Skills & Technologies",
+    "description": "Proficient in JavaScript, TypeScript, React, Node.js, Python, and more. Experienced with cloud platforms, databases, and modern development tools. Always expanding my toolkit.",
+    "year": "Ongoing",
+    "skills": [
+      "JavaScript/TypeScript",
+      "React/Next.js",
+      "Node.js",
+      "Python",
+      "Git",
+      "Docker",
+      "AWS/Cloud"
+    ],
+    "links": []
+  },
+  "projects": {
+    "title": "Projects",
+    "description": "Check out my GitHub to see various projects including web applications, open-source contributions, and personal experiments. Always working on something new!",
+    "year": "Various",
+    "links": [
+      {
+        "text": "GitHub Profile",
+        "url": "https://github.com/Tuhin-SnapD",
+        "icon": "github"
+      },
+      {
+        "text": "LinkedIn",
+        "url": "https://linkedin.com/in/yourprofile",
+        "icon": "linkedin"
+      },
+      {
+        "text": "View Projects",
+        "url": "https://github.com/Tuhin-SnapD?tab=repositories",
+        "icon": "external"
+      }
+    ]
+  },
+  "future": {
+    "title": "Future Goals",
+    "description": "Looking ahead, I aim to [Your Goals]. Excited about [Technologies/Areas], and committed to continuous growth and making a positive impact through technology.",
+    "year": "Future",
+    "links": []
+  }
+}
+

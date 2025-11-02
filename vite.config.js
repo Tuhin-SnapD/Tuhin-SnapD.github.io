@@ -1,23 +1,32 @@
-import { defineConfig } from 'vite'
+import { defineConfig } from 'vite';
 
-export default defineConfig({
-  base: process.env.NODE_ENV === 'production' ? '/Tuhin-SnapD.github.io/' : '/',
-  server: {
-    host: true,
-    port: 3000
-  },
-  build: {
-    outDir: 'dist',
-    assetsDir: 'assets',
-    sourcemap: false,
-    minify: 'terser',
-    terserOptions: {
-      compress: {
-        drop_console: true,
-        drop_debugger: true
+export default defineConfig(({ command }) => {
+  // Use base path only for production builds (GitHub Pages)
+  // For development, use '/' to avoid WebSocket/HMR issues
+  const base = command === 'serve' ? '/' : '/Tuhin-SnapD.github.io/';
+
+  return {
+    base,
+    build: {
+      outDir: 'dist',
+      assetsDir: 'assets',
+      sourcemap: false,
+      rollupOptions: {
+        output: {
+          manualChunks: {
+            phaser: ['phaser']
+          }
+        }
       }
+    },
+    // Enable sourcemaps in dev mode for debugging
+    esbuild: {
+      sourcemap: 'inline'
+    },
+    server: {
+      port: 3000,
+      open: true
     }
-  },
-  root: '.',
-  publicDir: 'public'
-}) 
+  };
+});
+
