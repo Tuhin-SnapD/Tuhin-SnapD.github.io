@@ -1,3 +1,26 @@
+const PLAYER_SPEED = 200;
+const JUMP_VELOCITY = -400;
+
+const COIN_POSITIONS_OFFSETS = [
+  { x: 400, dy: 100 },
+  { x: 850, dy: 220 },
+  { x: 1250, dy: 180 },
+  { x: 1450, dy: 250 },
+  { x: 1700, dy: 100 },
+  { x: 2150, dy: 150 },
+  { x: 2450, dy: 200 },
+  { x: 2750, dy: 120 },
+  { x: 3000, dy: 100 },
+  { x: 1000, dy: 150 }
+];
+
+function hasTouchInput(scene) {
+  const device = scene.sys.game.device;
+  return (device?.input?.touch) ||
+         (typeof window !== 'undefined' && 'ontouchstart' in window) ||
+         (typeof navigator !== 'undefined' && navigator.maxTouchPoints > 0);
+}
+
 export default class WorldScene extends Phaser.Scene {
   constructor() {
     super({ key: 'WorldScene' });
@@ -11,81 +34,89 @@ export default class WorldScene extends Phaser.Scene {
     this.jumpKey = null;
     this.jumpPressed = false;
     this.groundY = 0;
+    this.coins = null;
+    this.collectedCoins = 0;
+    this.zoneGlows = [];
+    this.backgroundLayers = [];
+    this.indicatorPulseTween = null;
+    this.resumeUrl = '/resume.pdf';
   }
 
   create() {
+    this.resumeUrl = (import.meta.env?.BASE_URL || '/') + 'resume.pdf';
+
     const mapData = this.cache.json.get('mapData');
     if (!mapData) {
       console.error('Failed to load mapData');
       return;
     }
-    
-    // Calculate world width based on zones (horizontal layout)
-    // Find the furthest zone position
+
     let maxZoneX = 0;
-    if (mapData.zones && mapData.zones.length > 0) {
-      mapData.zones.forEach(zone => {
-        const zoneEnd = zone.x + zone.width;
-        if (zoneEnd > maxZoneX) {
-          maxZoneX = zoneEnd;
-        }
-      });
+    if (mapData.zones?.length) {
+      for (const zone of mapData.zones) {
+        maxZoneX = Math.max(maxZoneX, zone.x + zone.width);
+      }
     }
-    const worldWidth = Math.max(mapData.width * mapData.tileWidth, maxZoneX + 500); // Add buffer
-    const worldHeight = 600; // Fixed height for side-scrolling
-    this.groundY = worldHeight - 100; // Ground level
-    
-    // Create Mario-style background
+    const worldWidth = Math.max(mapData.width * mapData.tileWidth, maxZoneX + 500);
+    const worldHeight = 600;
+    this.groundY = worldHeight - 100;
+
     this.createBackground(worldWidth, worldHeight);
-    
-    // Create platforms group
+
     this.platforms = this.physics.add.staticGroup();
-    
-    // Create ground platform (full width) - Mario World style wavy grass
+
     const ground = this.platforms.create(0, this.groundY + 16, 'grass');
     ground.setScale(worldWidth / 32, 1);
     ground.setOrigin(0, 0);
     ground.refreshBody();
-    
-    // Create additional platforms at different heights for variety
+
     const platformY1 = this.groundY - 150;
     const platformY2 = this.groundY - 250;
-    
-    // Platform 1 (medium height) with Mario-style grass
+
     const platform1 = this.platforms.create(800, platformY1, 'grass');
     platform1.setScale(200 / 32, 1);
     platform1.setOrigin(0, 0);
     platform1.refreshBody();
-    
-    // Platform 2 (higher)
+
     const platform2 = this.platforms.create(1500, platformY2, 'grass');
     platform2.setScale(200 / 32, 1);
     platform2.setOrigin(0, 0);
     platform2.refreshBody();
-    
-    // Platform 3 (ground level, connecting)
+
     const platform3 = this.platforms.create(2500, this.groundY + 16, 'grass');
     platform3.setScale(300 / 32, 1);
     platform3.setOrigin(0, 0);
     platform3.refreshBody();
-    
-    // Create zone areas (positioned horizontally)
-    this.createZones(mapData.zones, worldWidth);
-    
-    // Create player
+
+    this.createZones(mapData.zones);
+
     this.player = this.physics.add.sprite(100, this.groundY - 50, 'player_idle');
     this.player.setBounce(0.1);
     this.player.setCollideWorldBounds(true);
     this.player.setScale(1.5);
     this.player.body.setSize(12, 12);
-    
-    // Player collision with platforms
+
+    this.tweens.add({
+      targets: this.player,
+      alpha: { from: 0.95, to: 1 },
+      duration: 1000,
+      yoyo: true,
+      repeat: -1,
+      ease: 'Sine.easeInOut'
+    });
+
     this.physics.add.collider(this.player, this.platforms);
-    
-    // Add decorative Mario blocks (after player is created for collision)
-    this.createDecorativeBlocks(worldWidth);
-    
-    // Create player animations
+
+    this.coins = this.physics.add.group({ defaultKey: 'coin', maxSize: 50 });
+
+    this.createDecorativeBlocks();
+
+    this.collectedCoins = parseInt(localStorage.getItem('collectedCoins') || '0', 10) || 0;
+    this.createCoins();
+    this.physics.add.overlap(this.player, this.coins, this.collectCoin, null, this);
+
+    this.createCoinCounter();
+
     this.anims.create({
       key: 'idle',
       frames: [{ key: 'player_idle' }],
@@ -107,60 +138,98 @@ export default class WorldScene extends Phaser.Scene {
 
     this.player.play('idle');
 
-    // Camera follows player (horizontally only)
     this.cameras.main.setBounds(0, 0, worldWidth, worldHeight);
-    this.cameras.main.startFollow(this.player, false, 1, 0, 0, 100);
+    this.cameras.main.startFollow(this.player, true, 0.12, 0.12, 0, 80);
+    this.cameras.main.setDeadzone(120, 40);
     this.cameras.main.setZoom(1);
-    
-    // Input
+
     this.cursors = this.input.keyboard.createCursorKeys();
-    
-    // WASD support (A/D for left/right, W/SPACE for jump)
     this.wasd = {
       left: this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.A),
-      right: this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.D)
+      right: this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.D),
+      up: this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.W)
     };
-    
-    // Jump key (Space and W)
     this.jumpKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE);
-    this.wasd.up = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.W);
-
-    // Interaction key
     this.interactKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.E);
     this.interactKey.on('down', () => this.handleInteraction());
 
-    // Touch controls for mobile
     this.setupTouchControls();
+    this.createInteractIndicator();
+    this.createSettingsUI();
+  }
 
-    // Interaction indicator (positioned relative to player)
-    this.interactIndicator = this.add.text(
-      this.player.x,
-      this.player.y - 30,
-      'Press E',
-      {
-        font: '12px monospace',
-        fill: '#ffffff',
-        backgroundColor: '#000000',
-        padding: { x: 4, y: 2 }
-      }
-    );
-    this.interactIndicator.setOrigin(0.5);
+  createInteractIndicator() {
+    this.interactIndicator = this.add.container(this.player.x, this.player.y - 30);
+    const bg = this.add.rectangle(0, 0, 80, 30, 0x4ade80, 0.9);
+    bg.setStrokeStyle(2, 0xffffff);
+    const txt = this.add.text(0, 0, 'Press E', {
+      font: 'bold 14px monospace',
+      fill: '#ffffff',
+      stroke: '#000000',
+      strokeThickness: 3
+    });
+    txt.setOrigin(0.5);
+    this.interactIndicator.add([bg, txt]);
     this.interactIndicator.setVisible(false);
     this.interactIndicator.setDepth(1000);
 
-    // Settings UI (music toggle, resume button)
-    this.createSettingsUI();
+    this.indicatorPulseTween = this.tweens.add({
+      targets: this.interactIndicator,
+      scale: { from: 0.9, to: 1.1 },
+      duration: 600,
+      yoyo: true,
+      repeat: -1,
+      ease: 'Sine.easeInOut',
+      paused: true
+    });
+  }
+
+  createCoinCounter() {
+    const { width } = this.cameras.main;
+    this.coinCounter = this.add.text(width - 120, 60, `💰 ${this.collectedCoins}`, {
+      font: 'bold 18px monospace',
+      fill: '#ffd700',
+      stroke: '#000000',
+      strokeThickness: 3
+    });
+    this.coinCounter.setScrollFactor(0);
+    this.coinCounter.setDepth(2000);
+  }
+
+  updateCoinCounter() {
+    if (this.coinCounter) {
+      this.coinCounter.setText(`💰 ${this.collectedCoins}`);
+    }
+  }
+
+  attachButtonFeedback(button, { hoverScale = 1.1, pressScale = 0.9, onClick } = {}) {
+    button.on('pointerover', () => {
+      this.tweens.add({ targets: button, scale: hoverScale, duration: 150, ease: 'Power2' });
+    });
+    button.on('pointerout', () => {
+      this.tweens.add({ targets: button, scale: 1, duration: 150, ease: 'Power2' });
+    });
+    button.on('pointerdown', () => {
+      this.tweens.add({
+        targets: button,
+        scale: pressScale,
+        duration: 100,
+        yoyo: true,
+        ease: 'Power2',
+        onComplete: onClick
+      });
+    });
   }
 
   createSettingsUI() {
     const padding = 20;
     const btnSize = 40;
     const btnY = padding + btnSize / 2;
+    const camWidth = this.cameras.main.width;
 
-    // Music toggle button
     this.musicEnabled = localStorage.getItem('musicEnabled') !== 'false';
     this.musicBtn = this.add.rectangle(
-      this.cameras.main.width - padding - btnSize / 2,
+      camWidth - padding - btnSize / 2,
       btnY,
       btnSize,
       btnSize,
@@ -171,35 +240,26 @@ export default class WorldScene extends Phaser.Scene {
     this.musicBtn.setStrokeStyle(1, 0xffffff);
     this.musicBtn.setInteractive({ useHandCursor: true });
 
-    this.musicText = this.add.text(
-      this.musicBtn.x,
-      this.musicBtn.y,
-      '♪',
-      {
-        font: '20px monospace',
-        fill: '#ffffff'
-      }
-    );
-    this.musicText.setOrigin(0.5);
-    this.musicText.setScrollFactor(0);
+    this.musicText = this.add.text(this.musicBtn.x, this.musicBtn.y, '♪', {
+      font: '20px monospace',
+      fill: '#ffffff'
+    });
+    this.musicText.setOrigin(0.5).setScrollFactor(0);
 
-    this.musicBtn.on('pointerdown', () => {
-      this.musicEnabled = !this.musicEnabled;
-      localStorage.setItem('musicEnabled', this.musicEnabled.toString());
-      this.musicBtn.setFillStyle(this.musicEnabled ? 0x4ade80 : 0x6b7280, 0.7);
-      
-      if (this.music) {
-        if (this.musicEnabled) {
-          this.music.play();
-        } else {
-          this.music.stop();
+    this.attachButtonFeedback(this.musicBtn, {
+      onClick: () => {
+        this.musicEnabled = !this.musicEnabled;
+        localStorage.setItem('musicEnabled', this.musicEnabled.toString());
+        this.musicBtn.setFillStyle(this.musicEnabled ? 0x4ade80 : 0x6b7280, 0.7);
+        if (this.music) {
+          if (this.musicEnabled) this.music.play();
+          else this.music.stop();
         }
       }
     });
 
-    // Resume download button
     const resumeBtn = this.add.rectangle(
-      this.cameras.main.width - padding - btnSize / 2 - btnSize - 10,
+      camWidth - padding - btnSize / 2 - btnSize - 10,
       btnY,
       btnSize * 1.5,
       btnSize,
@@ -210,56 +270,43 @@ export default class WorldScene extends Phaser.Scene {
     resumeBtn.setStrokeStyle(1, 0xffffff);
     resumeBtn.setInteractive({ useHandCursor: true });
 
-    const resumeText = this.add.text(
-      resumeBtn.x,
-      resumeBtn.y,
-      '📄',
-      {
-        font: '18px monospace',
-        fill: '#ffffff'
-      }
-    );
-    resumeText.setOrigin(0.5);
-    resumeText.setScrollFactor(0);
+    const resumeText = this.add.text(resumeBtn.x, resumeBtn.y, '📄', {
+      font: '18px monospace',
+      fill: '#ffffff'
+    });
+    resumeText.setOrigin(0.5).setScrollFactor(0);
 
-    resumeBtn.on('pointerdown', () => {
-      window.open('/resume.pdf', '_blank');
+    this.attachButtonFeedback(resumeBtn, {
+      onClick: () => window.open(this.resumeUrl, '_blank', 'noopener,noreferrer')
     });
   }
 
-  createZones(zoneConfigs, worldWidth) {
+  createZones(zoneConfigs) {
     zoneConfigs.forEach((zoneConfig) => {
-      // Use coordinates from mapData (already in pixels)
       const zoneX = zoneConfig.x;
-      const zoneY = this.groundY - 50; // On ground level
+      const zoneY = this.groundY - 50;
       const zoneWidth = zoneConfig.width;
       const zoneHeight = zoneConfig.height;
-      
-      // Create collision zone
-      const zone = this.add.zone(
-        zoneX + zoneWidth / 2,
-        zoneY,
-        zoneWidth,
-        zoneHeight
-      );
+      const cx = zoneX + zoneWidth / 2;
+
+      const zone = this.add.zone(cx, zoneY, zoneWidth, zoneHeight);
       zone.setData('id', zoneConfig.id);
       this.physics.world.enable(zone);
       zone.body.setAllowGravity(false);
       zone.body.setImmovable(true);
-      
-      // Visual indicator - more visible
-      const zoneRect = this.add.rectangle(
-        zoneX + zoneWidth / 2,
-        zoneY,
-        zoneWidth,
-        zoneHeight,
-        0x4ade80,
-        0.3
-      );
+
+      const zoneRect = this.add.rectangle(cx, zoneY, zoneWidth, zoneHeight, 0x4ade80, 0.3);
       zoneRect.setStrokeStyle(3, 0x4ade80, 1.0);
       zoneRect.setDepth(100);
-      
-      // Add a pulsing effect to make zones more noticeable
+
+      const glow1 = this.add.rectangle(cx, zoneY, zoneWidth + 10, zoneHeight + 10, 0x4ade80, 0.2);
+      glow1.setStrokeStyle(2, 0x4ade80, 0.6);
+      glow1.setDepth(99);
+
+      const glow2 = this.add.rectangle(cx, zoneY, zoneWidth + 20, zoneHeight + 20, 0x4ade80, 0.1);
+      glow2.setStrokeStyle(1, 0x4ade80, 0.4);
+      glow2.setDepth(98);
+
       this.tweens.add({
         targets: zoneRect,
         alpha: { from: 0.3, to: 0.6 },
@@ -268,10 +315,27 @@ export default class WorldScene extends Phaser.Scene {
         repeat: -1,
         ease: 'Sine.easeInOut'
       });
-      
-      // Zone label - larger and more prominent
-      const zoneLabel = this.add.text(
-        zoneX + zoneWidth / 2,
+      this.tweens.add({
+        targets: glow1,
+        alpha: { from: 0.1, to: 0.3 },
+        duration: 1200,
+        yoyo: true,
+        repeat: -1,
+        ease: 'Sine.easeInOut'
+      });
+      this.tweens.add({
+        targets: glow2,
+        alpha: { from: 0.05, to: 0.15 },
+        duration: 1800,
+        yoyo: true,
+        repeat: -1,
+        ease: 'Sine.easeInOut'
+      });
+
+      this.zoneGlows.push({ rect: zoneRect, glow1, glow2 });
+
+      const label = this.add.text(
+        cx,
         zoneY - 70,
         zoneConfig.id.charAt(0).toUpperCase() + zoneConfig.id.slice(1).replace(/([A-Z])/g, ' $1'),
         {
@@ -282,359 +346,377 @@ export default class WorldScene extends Phaser.Scene {
           strokeThickness: 4
         }
       );
-      zoneLabel.setOrigin(0.5);
-      zoneLabel.setDepth(101);
-      
-      // Add an icon/marker above the label
-      const marker = this.add.text(
-        zoneX + zoneWidth / 2,
-        zoneY - 100,
-        '📍',
-        {
-          font: '24px monospace'
-        }
-      );
-      marker.setOrigin(0.5);
-      marker.setDepth(101);
-      
-      // Add pulsing to marker
+      label.setOrigin(0.5).setDepth(101);
+
+      const marker = this.add.text(cx, zoneY - 100, '📍', { font: '24px monospace' });
+      marker.setOrigin(0.5).setDepth(101);
+
       this.tweens.add({
         targets: marker,
         y: { from: zoneY - 100, to: zoneY - 95 },
+        scale: { from: 1, to: 1.2 },
         duration: 1000,
         yoyo: true,
         repeat: -1,
         ease: 'Sine.easeInOut'
       });
 
-      this.zones.push({ zone, config: zoneConfig, label: zoneLabel, marker: marker, rect: zoneRect });
+      const sparkles = this.add.particles(marker.x, marker.y, 'coin', {
+        scale: { start: 0.3, end: 0 },
+        speed: { min: 10, max: 20 },
+        lifespan: 2000,
+        frequency: 500,
+        quantity: 1,
+        tint: [0x4ade80, 0x60a5fa, 0xa78bfa]
+      });
+      sparkles.setDepth(102);
+
+      this.zones.push({ zone, config: zoneConfig, label, marker, rect: zoneRect, sparkles });
     });
   }
 
   update() {
-    if (!this.canMove || !this.player) return;
-    if (!this.cursors || !this.wasd) return;
+    if (!this.canMove || !this.player || !this.cursors || !this.wasd) return;
 
-    const speed = 200;
     let velocityX = 0;
-    
-    // Left/Right movement
-    if ((this.cursors.left && this.cursors.left.isDown) || (this.wasd.left && this.wasd.left.isDown)) {
-      velocityX = -speed;
+    const leftDown = this.cursors.left?.isDown || this.wasd.left?.isDown;
+    const rightDown = this.cursors.right?.isDown || this.wasd.right?.isDown;
+
+    if (leftDown) {
+      velocityX = -PLAYER_SPEED;
       this.player.setFlipX(true);
-    } else if ((this.cursors.right && this.cursors.right.isDown) || (this.wasd.right && this.wasd.right.isDown)) {
-      velocityX = speed;
+    } else if (rightDown) {
+      velocityX = PLAYER_SPEED;
       this.player.setFlipX(false);
     }
-    
     this.player.setVelocityX(velocityX);
 
-    // Jumping (only when touching ground/platform)
     const isOnGround = this.player.body.touching.down;
-    
-    // Check for jump input (keyboard or touch)
-    const shouldJump = (Phaser.Input.Keyboard.JustDown(this.jumpKey) || 
-                        Phaser.Input.Keyboard.JustDown(this.wasd.up) ||
-                        (this.jumpPressed && isOnGround));
-    
+    const shouldJump = (
+      Phaser.Input.Keyboard.JustDown(this.jumpKey) ||
+      Phaser.Input.Keyboard.JustDown(this.wasd.up) ||
+      (this.jumpPressed && isOnGround)
+    );
+
     if (shouldJump && isOnGround) {
-      this.player.setVelocityY(-400);
+      this.player.setVelocityY(JUMP_VELOCITY);
       this.isJumping = true;
-      this.jumpPressed = false; // Reset touch jump flag
-    }
-    
-    // Reset jump flag when on ground
-    if (isOnGround) {
-      this.isJumping = false;
+      this.jumpPressed = false;
+      this.cameras.main.shake(100, 0.0015);
+
+      const jumpParticles = this.add.particles(this.player.x, this.player.y + 8, 'coin', {
+        scale: { start: 0.3, end: 0 },
+        speed: { min: 20, max: 40 },
+        angle: { min: 250, max: 290 },
+        lifespan: 300,
+        quantity: 3,
+        tint: 0xffffff
+      });
+      this.time.delayedCall(300, () => jumpParticles.destroy());
     }
 
-    // Update animation based on movement
+    if (isOnGround) this.isJumping = false;
+
+    const currentAnim = this.player.anims.currentAnim?.key;
     if (velocityX !== 0 && isOnGround) {
-      if (!this.player.anims.currentAnim || this.player.anims.currentAnim.key !== 'walk') {
-        this.player.play('walk');
-      }
+      if (currentAnim !== 'walk') this.player.play('walk');
     } else if (isOnGround) {
-      if (!this.player.anims.currentAnim || this.player.anims.currentAnim.key !== 'idle') {
-        this.player.play('idle');
+      if (currentAnim !== 'idle') this.player.play('idle');
+    }
+
+    if (this.interactIndicator) {
+      this.interactIndicator.setPosition(this.player.x, this.player.y - 35);
+    }
+
+    this.checkZoneCollisions();
+    this.updateParallax();
+  }
+
+  updateParallax() {
+    if (!this.player || !this.backgroundLayers?.length) return;
+    const scrollX = this.cameras.main.scrollX;
+    for (const layer of this.backgroundLayers) {
+      const positions = layer.originalPositions;
+      const entries = layer.group?.children?.entries;
+      if (!positions || !entries) continue;
+      const offset = scrollX * (1 - layer.speed);
+      for (let i = 0; i < entries.length; i++) {
+        const original = positions[i];
+        if (original) entries[i].x = original.x - offset;
       }
     }
+  }
 
-    // Update interaction indicator position to follow player
-    if (this.interactIndicator) {
-      this.interactIndicator.setPosition(this.player.x, this.player.y - 30);
+  collectCoin(player, coin) {
+    this.cameras.main.shake(100, 0.003);
+
+    const positionKey = coin.getData('positionKey') || `${coin.x},${coin.y}`;
+
+    const particles = this.add.particles(coin.x, coin.y, 'coin', {
+      scale: { start: 0.5, end: 0 },
+      speed: { min: 50, max: 100 },
+      lifespan: 500,
+      quantity: 5,
+      tint: [0xffd700, 0xffed4e, 0xffff00]
+    });
+
+    coin.disableBody(true, true);
+
+    this.collectedCoins++;
+    const collected = JSON.parse(localStorage.getItem('collectedCoinPositions') || '[]');
+    if (!collected.includes(positionKey)) {
+      collected.push(positionKey);
+      localStorage.setItem('collectedCoinPositions', JSON.stringify(collected));
     }
+    localStorage.setItem('collectedCoins', this.collectedCoins.toString());
+    this.updateCoinCounter();
 
-    // Check zone collisions
-    this.checkZoneCollisions();
+    this.time.delayedCall(500, () => particles?.destroy?.());
+  }
+
+  createCoins() {
+    const collected = JSON.parse(localStorage.getItem('collectedCoinPositions') || '[]');
+
+    for (const { x, dy } of COIN_POSITIONS_OFFSETS) {
+      const y = this.groundY - dy;
+      const key = `${x},${y}`;
+      if (collected.includes(key)) continue;
+
+      const coin = this.coins.create(x, y, 'coin');
+      if (!coin) continue;
+
+      coin.setScale(0.8);
+      coin.setData('positionKey', key);
+      coin.body.setAllowGravity(false);
+      coin.body.setSize(12, 12);
+
+      this.tweens.add({
+        targets: coin,
+        y: y - 10,
+        duration: 1000,
+        yoyo: true,
+        repeat: -1,
+        ease: 'Sine.easeInOut'
+      });
+      this.tweens.add({
+        targets: coin,
+        angle: 360,
+        duration: 2000,
+        repeat: -1,
+        ease: 'Linear'
+      });
+    }
   }
 
   checkZoneCollisions() {
     if (!this.player) return;
-    
-    let inZone = false;
+
     let currentZone = null;
-
-    this.zones.forEach(({ zone, config }) => {
+    for (const { zone, config } of this.zones) {
       if (Phaser.Geom.Rectangle.Contains(zone.getBounds(), this.player.x, this.player.y)) {
-        inZone = true;
         currentZone = config.id;
+        break;
       }
-    });
+    }
 
-    if (inZone && currentZone !== this.currentZone) {
+    if (currentZone && currentZone !== this.currentZone) {
       this.currentZone = currentZone;
       if (this.interactIndicator) {
         this.interactIndicator.setVisible(true);
+        this.indicatorPulseTween?.resume();
+        this.tweens.add({
+          targets: this.interactIndicator,
+          scale: { from: 1, to: 1.2 },
+          duration: 200,
+          yoyo: true,
+          ease: 'Power2'
+        });
       }
-      
-      // Mark zone as visited in localStorage
+
+      const zoneInfo = this.zones.find(z => z.config.id === currentZone);
+      if (zoneInfo?.rect) {
+        this.tweens.add({
+          targets: zoneInfo.rect,
+          alpha: { from: 0.6, to: 1 },
+          duration: 300,
+          yoyo: true,
+          repeat: 1,
+          ease: 'Power2'
+        });
+      }
+
       const visited = JSON.parse(localStorage.getItem('visitedZones') || '[]');
       if (!visited.includes(currentZone)) {
         visited.push(currentZone);
         localStorage.setItem('visitedZones', JSON.stringify(visited));
+
+        if (zoneInfo && this.player) {
+          const celebrationParticles = this.add.particles(this.player.x, this.player.y, 'coin', {
+            scale: { start: 0.4, end: 0 },
+            speed: { min: 80, max: 120 },
+            lifespan: 800,
+            quantity: 15,
+            tint: [0x4ade80, 0x60a5fa, 0xa78bfa, 0xffd700]
+          });
+          this.time.delayedCall(800, () => celebrationParticles?.destroy?.());
+        }
       }
-    } else if (!inZone) {
+    } else if (!currentZone && this.currentZone) {
       this.currentZone = null;
       if (this.interactIndicator) {
         this.interactIndicator.setVisible(false);
+        this.indicatorPulseTween?.pause();
       }
     }
   }
 
   handleInteraction() {
-    if (this.currentZone && this.canMove) {
-      const locationsData = this.cache.json.get('locations');
-      if (!locationsData) {
-        console.error('Failed to load locations data');
-        return;
-      }
-      
-      const locationData = locationsData[this.currentZone];
-      if (locationData) {
-        this.canMove = false;
-        this.player.setVelocity(0, 0);
-        
-        // Show modal via UI scene
-        this.scene.launch('UIScene', {
-          locationId: this.currentZone,
-          locationData: locationData
-        });
-      } else {
-        console.warn(`No location data found for zone: ${this.currentZone}`);
-      }
+    if (!this.currentZone || !this.canMove) return;
+
+    const locationsData = this.cache.json.get('locations');
+    if (!locationsData) {
+      console.error('Failed to load locations data');
+      return;
     }
+
+    const locationData = locationsData[this.currentZone];
+    if (!locationData) {
+      console.warn(`No location data found for zone: ${this.currentZone}`);
+      return;
+    }
+
+    this.canMove = false;
+    this.player.setVelocity(0, 0);
+
+    this.cameras.main.shake(100, 0.003);
+    const interactParticles = this.add.particles(this.player.x, this.player.y, 'coin', {
+      scale: { start: 0.5, end: 0 },
+      speed: { min: 50, max: 150 },
+      lifespan: 600,
+      quantity: 10,
+      tint: [0x4ade80, 0x60a5fa, 0xa78bfa]
+    });
+    this.time.delayedCall(600, () => interactParticles.destroy());
+
+    this.cameras.main.flash(200, 255, 255, 255);
+
+    this.scene.launch('UIScene', {
+      locationId: this.currentZone,
+      locationData,
+      resumeUrl: this.resumeUrl
+    });
   }
 
   setupTouchControls() {
+    this.jumpPressed = false;
+    if (!hasTouchInput(this)) return;
+
     const buttonSize = 60;
     const padding = 20;
-    
-    // Left button
-    const leftBtn = this.add.rectangle(
-      padding + buttonSize / 2,
-      this.cameras.main.height - padding - buttonSize / 2,
-      buttonSize,
-      buttonSize,
-      0xffffff,
-      0.4
-    );
-    leftBtn.setScrollFactor(0);
-    leftBtn.setInteractive({ useHandCursor: true });
-    
-    const leftText = this.add.text(leftBtn.x, leftBtn.y, '←', {
-      font: '28px monospace',
-      fill: '#ffffff'
-    });
-    leftText.setOrigin(0.5);
-    leftText.setScrollFactor(0);
+    const camWidth = this.cameras.main.width;
+    const camHeight = this.cameras.main.height;
+    const rowY = camHeight - padding - buttonSize / 2;
 
-    // Right button
-    const rightBtn = this.add.rectangle(
-      padding + buttonSize * 2,
-      this.cameras.main.height - padding - buttonSize / 2,
-      buttonSize,
-      buttonSize,
-      0xffffff,
-      0.4
-    );
-    rightBtn.setScrollFactor(0);
-    rightBtn.setInteractive({ useHandCursor: true });
-    
-    const rightText = this.add.text(rightBtn.x, rightBtn.y, '→', {
-      font: '28px monospace',
-      fill: '#ffffff'
-    });
-    rightText.setOrigin(0.5);
-    rightText.setScrollFactor(0);
-
-    // Jump button (larger, positioned between movement and interact)
-    const jumpBtn = this.add.rectangle(
-      padding + buttonSize * 4,
-      this.cameras.main.height - padding - buttonSize / 2,
-      buttonSize * 1.2,
-      buttonSize,
-      0x4ade80,
-      0.6
-    );
-    jumpBtn.setScrollFactor(0);
-    jumpBtn.setInteractive({ useHandCursor: true });
-    
-    const jumpText = this.add.text(jumpBtn.x, jumpBtn.y, '↑', {
-      font: '28px monospace',
-      fill: '#ffffff'
-    });
-    jumpText.setOrigin(0.5);
-    jumpText.setScrollFactor(0);
-
-    // Touch handlers for left/right
-    leftBtn.on('pointerdown', () => {
-      if (this.wasd && this.wasd.left) {
-        this.wasd.left.isDown = true;
-      }
-    });
-    leftBtn.on('pointerup', () => {
-      if (this.wasd && this.wasd.left) {
-        this.wasd.left.isDown = false;
-      }
-    });
-    leftBtn.on('pointerout', () => {
-      if (this.wasd && this.wasd.left) {
-        this.wasd.left.isDown = false;
-      }
-    });
-
-    rightBtn.on('pointerdown', () => {
-      if (this.wasd && this.wasd.right) {
-        this.wasd.right.isDown = true;
-      }
-    });
-    rightBtn.on('pointerup', () => {
-      if (this.wasd && this.wasd.right) {
-        this.wasd.right.isDown = false;
-      }
-    });
-    rightBtn.on('pointerout', () => {
-      if (this.wasd && this.wasd.right) {
-        this.wasd.right.isDown = false;
-      }
-    });
-
-    // Jump button handler - store flag to trigger jump in update
-    this.jumpPressed = false;
-    jumpBtn.on('pointerdown', () => {
-      this.jumpPressed = true;
-    });
-
-    // Interaction button (right side)
-    const interactBtn = this.add.rectangle(
-      this.cameras.main.width - padding - buttonSize / 2,
-      this.cameras.main.height - padding - buttonSize / 2,
-      buttonSize * 1.5,
-      buttonSize,
-      0x818cf8,
-      0.7
-    );
-    interactBtn.setScrollFactor(0);
-    interactBtn.setInteractive({ useHandCursor: true });
-    
-    const interactText = this.add.text(interactBtn.x, interactBtn.y, 'E', {
-      font: '20px monospace',
-      fill: '#ffffff',
-      fontWeight: 'bold'
-    });
-    interactText.setOrigin(0.5);
-    interactText.setScrollFactor(0);
-
-    interactBtn.on('pointerdown', () => {
-      this.handleInteraction();
-    });
-
-    // Store touch controls for toggling
-    this.touchControls = {
-      leftBtn, rightBtn, jumpBtn, interactBtn,
-      leftText, rightText, jumpText, interactText
+    const mkBtn = (x, w, color, alpha, label, labelSize = 28) => {
+      const rect = this.add.rectangle(x, rowY, w, buttonSize, color, alpha);
+      rect.setScrollFactor(0);
+      rect.setInteractive({ useHandCursor: true });
+      const text = this.add.text(rect.x, rect.y, label, {
+        font: `${labelSize}px monospace`,
+        fill: '#ffffff'
+      });
+      text.setOrigin(0.5).setScrollFactor(0);
+      return { rect, text };
     };
-    
-    // Hide buttons on desktop
-    const device = this.sys.game.device;
-    const hasTouch = (device && device.input && device.input.touch) || 
-                     (typeof window !== 'undefined' && 'ontouchstart' in window) || 
-                     (typeof navigator !== 'undefined' && navigator.maxTouchPoints > 0);
-    if (!hasTouch) {
-      leftBtn.setVisible(false);
-      rightBtn.setVisible(false);
-      jumpBtn.setVisible(false);
-      interactBtn.setVisible(false);
-      leftText.setVisible(false);
-      rightText.setVisible(false);
-      jumpText.setVisible(false);
-      interactText.setVisible(false);
-    }
+
+    const left = mkBtn(padding + buttonSize / 2, buttonSize, 0xffffff, 0.4, '←');
+    const right = mkBtn(padding + buttonSize * 2, buttonSize, 0xffffff, 0.4, '→');
+    const jump = mkBtn(padding + buttonSize * 4, buttonSize * 1.2, 0x4ade80, 0.6, '↑');
+    const interact = mkBtn(camWidth - padding - buttonSize / 2, buttonSize * 1.5, 0x818cf8, 0.7, 'E', 20);
+
+    const wireHold = (btn, key) => {
+      const press = () => { if (this.wasd?.[key]) this.wasd[key].isDown = true; };
+      const release = () => { if (this.wasd?.[key]) this.wasd[key].isDown = false; };
+      btn.on('pointerdown', press);
+      btn.on('pointerup', release);
+      btn.on('pointerout', release);
+      btn.on('pointerupoutside', release);
+    };
+
+    wireHold(left.rect, 'left');
+    wireHold(right.rect, 'right');
+
+    jump.rect.on('pointerdown', () => { this.jumpPressed = true; });
+    interact.rect.on('pointerdown', () => this.handleInteraction());
+
+    this.touchControls = { left, right, jump, interact };
   }
 
   createBackground(worldWidth, worldHeight) {
-    // Create background sky tiles
-    for (let x = 0; x < worldWidth; x += 256) {
+    const farBg = this.add.group();
+    for (let x = 0; x < worldWidth + 512; x += 256) {
       for (let y = 0; y < worldHeight / 2; y += 256) {
-        const skyTile = this.add.image(x, y, 'sky');
-        skyTile.setOrigin(0, 0);
-        skyTile.setDepth(-100);
+        const tile = this.add.image(x, y, 'sky');
+        tile.setOrigin(0, 0);
+        tile.setDepth(-100);
+        tile.setTint(0x87ceeb);
+        farBg.add(tile);
       }
     }
-    
-    // Add mountains in the background (far right area)
+    this.backgroundLayers.push({ group: farBg, speed: 0.2, originalPositions: null });
+
+    const mediumBg = this.add.group();
+    for (let x = 0; x < worldWidth + 512; x += 256) {
+      for (let y = worldHeight / 2; y < worldHeight; y += 256) {
+        const tile = this.add.image(x, y, 'sky');
+        tile.setOrigin(0, 0);
+        tile.setDepth(-90);
+        tile.setTint(0x98d4eb);
+        mediumBg.add(tile);
+      }
+    }
+    this.backgroundLayers.push({ group: mediumBg, speed: 0.4, originalPositions: null });
+
     const mountains = this.add.group();
-    for (let i = 0; i < 3; i++) {
-      const mountain = this.add.image(3000 + i * 150, this.groundY - 50, 'mountain');
+    const mountainCount = Math.max(5, Math.ceil(worldWidth / 400));
+    for (let i = 0; i < mountainCount; i++) {
+      const mountain = this.add.image(200 + i * 400, this.groundY - 50, 'mountain');
       mountain.setOrigin(0.5, 1);
-      mountain.setScale(0.8 + i * 0.2);
+      mountain.setScale(0.6 + (i % 3) * 0.15);
       mountain.setDepth(-50);
+      mountain.setTint(0xadd8e6);
       mountains.add(mountain);
     }
-    
-    // Add clouds scattered across the sky
-    const cloudPositions = [
-      { x: 200, y: 50 },
-      { x: 600, y: 80 },
-      { x: 1200, y: 60 },
-      { x: 1800, y: 100 },
-      { x: 2400, y: 40 },
-      { x: 2800, y: 90 },
-      { x: 100, y: 120 },
-      { x: 900, y: 140 }
-    ];
-    
-    cloudPositions.forEach(pos => {
-      const cloudType = Math.random() > 0.5 ? 'cloud' : 'big_cloud';
-      const cloud = this.add.image(pos.x, pos.y, cloudType);
+    this.backgroundLayers.push({ group: mountains, speed: 0.3, originalPositions: null });
+
+    const clouds = this.add.group();
+    const cloudSpacing = 450;
+    for (let x = 100; x < worldWidth + 200; x += cloudSpacing) {
+      const y = 40 + ((x / cloudSpacing) % 3) * 40;
+      const cloudType = (x / cloudSpacing) % 2 < 1 ? 'cloud' : 'big_cloud';
+      const cloud = this.add.image(x, y, cloudType);
       cloud.setOrigin(0.5, 0.5);
       cloud.setDepth(-30);
-      
-      // Add some parallax effect by placing at different depths
-      if (cloudType === 'big_cloud') {
-        cloud.setDepth(-20);
-      }
-    });
-    
-    // Add bushes on the ground
-    const bushPositions = [
-      { x: 300, y: this.groundY },
-      { x: 700, y: this.groundY },
-      { x: 1100, y: this.groundY },
-      { x: 2000, y: this.groundY },
-      { x: 2700, y: this.groundY },
-      { x: 3100, y: this.groundY }
-    ];
-    
-    bushPositions.forEach(pos => {
-      const bush = this.add.image(pos.x, pos.y, 'bush');
+      cloud.setTint(0xffffff);
+      clouds.add(cloud);
+    }
+    this.backgroundLayers.push({ group: clouds, speed: 0.1, originalPositions: null });
+
+    for (const layer of this.backgroundLayers) {
+      layer.originalPositions = layer.group.children.entries.map(c => ({ x: c.x, y: c.y }));
+    }
+
+    const bushSpacing = 400;
+    for (let x = 300; x < worldWidth; x += bushSpacing) {
+      const bush = this.add.image(x, this.groundY, 'bush');
       bush.setOrigin(0.5, 1);
       bush.setDepth(10);
-    });
+    }
   }
 
-  createDecorativeBlocks(worldWidth) {
-    // Add question mark blocks at various heights
+  createDecorativeBlocks() {
+    const decorBlocks = this.physics.add.staticGroup();
+
     const qBlockPositions = [
       { x: 600, y: this.groundY - 120 },
       { x: 1200, y: this.groundY - 80 },
@@ -643,44 +725,31 @@ export default class WorldScene extends Phaser.Scene {
       { x: 2400, y: this.groundY - 150 },
       { x: 2900, y: this.groundY - 80 }
     ];
-    
-    const questionBlocks = this.physics.add.staticGroup();
-    qBlockPositions.forEach(pos => {
-      const qBlock = questionBlocks.create(pos.x, pos.y, 'question_block');
-      qBlock.setOrigin(0.5, 0.5);
-      qBlock.setScale(1);
-    });
-    
-    // Add solid blocks
+    for (const pos of qBlockPositions) {
+      decorBlocks.create(pos.x, pos.y, 'question_block').setOrigin(0.5).setScale(1);
+    }
+
     const solidBlockPositions = [
       { x: 650, y: this.groundY - 120 },
       { x: 1250, y: this.groundY - 80 },
       { x: 1450, y: this.groundY - 200 },
-      { x: 1466, y: this.groundY - 200 },
+      { x: 1482, y: this.groundY - 200 },
       { x: 2150, y: this.groundY - 100 }
     ];
-    
-    solidBlockPositions.forEach(pos => {
-      const solidBlock = questionBlocks.create(pos.x, pos.y, 'solid_block');
-      solidBlock.setOrigin(0.5, 0.5);
-      solidBlock.setScale(1);
-    });
-    
-    // Add brick blocks as platforms
+    for (const pos of solidBlockPositions) {
+      decorBlocks.create(pos.x, pos.y, 'solid_block').setOrigin(0.5).setScale(1);
+    }
+
     const brickPositions = [
       { x: 900, y: this.groundY - 60 },
       { x: 1050, y: this.groundY - 120 },
       { x: 2200, y: this.groundY - 60 }
     ];
-    
-    brickPositions.forEach(pos => {
-      const brick = questionBlocks.create(pos.x, pos.y, 'brick');
-      brick.setOrigin(0.5, 0.5);
-      brick.setScale(1);
-    });
-    
-    // Player collides with decorative blocks
-    this.physics.add.collider(this.player, questionBlocks);
+    for (const pos of brickPositions) {
+      decorBlocks.create(pos.x, pos.y, 'brick').setOrigin(0.5).setScale(1);
+    }
+
+    this.physics.add.collider(this.player, decorBlocks);
   }
 
   resumeMovement() {

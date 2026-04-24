@@ -57,6 +57,33 @@ export default class PreloadScene extends Phaser.Scene {
     
     // Create player sprites with animations
     this.createPlayerSprites();
+    
+    // Create coin sprite
+    this.createCoinSprite();
+  }
+  
+  createCoinSprite() {
+    const size = 16;
+    const coin = this.add.graphics();
+    
+    // Outer circle (gold)
+    coin.fillStyle(0xffd700);
+    coin.fillCircle(size / 2, size / 2, size / 2 - 2);
+    
+    // Inner highlight
+    coin.fillStyle(0xffed4e);
+    coin.fillCircle(size / 2 - 2, size / 2 - 2, size / 3);
+    
+    // Center dot
+    coin.fillStyle(0xffd700);
+    coin.fillCircle(size / 2, size / 2, 2);
+    
+    // Border
+    coin.lineStyle(1, 0xcc9900);
+    coin.strokeCircle(size / 2, size / 2, size / 2 - 1);
+    
+    coin.generateTexture('coin', size, size);
+    coin.destroy();
   }
 
   createPlayerSprites() {

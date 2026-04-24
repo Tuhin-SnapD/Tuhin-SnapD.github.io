@@ -67,7 +67,7 @@ export default class UIScene extends Phaser.Scene {
     super({ key: 'UIScene' });
     this.modal = null;
     this.currentLocationData = null;
-    this.wordWrapTempText = null; // Cache for word wrap calculations
+    this.resumeUrl = '/resume.pdf';
   }
 
   create() {
@@ -76,6 +76,7 @@ export default class UIScene extends Phaser.Scene {
   }
 
   init(data) {
+    if (data?.resumeUrl) this.resumeUrl = data.resumeUrl;
     if (data?.locationData) {
       this.currentLocationData = data.locationData;
       this.showModal(data.locationData, data.locationId);
@@ -98,15 +99,20 @@ export default class UIScene extends Phaser.Scene {
     // Initialize modal object
     this.modal = {
       elements: [],
-      escKey: null
+      escKey: null,
+      modalTop: height / 2 - modalDimensions.height / 2,
+      modalBottom: height / 2 + modalDimensions.height / 2,
+      modalLeft: width / 2 - modalDimensions.width / 2,
+      modalRight: width / 2 + modalDimensions.width / 2
     };
 
-    // Create modal elements
+    // Create modal elements with animations
     this.createOverlay(width, height);
     this.createModalBackground(width, height, modalDimensions);
     this.createTitle(width, height, locationData.title, modalDimensions);
     
-    let currentY = this.modal.title.y;
+    // Start content below the title (title origin is 0.5, so y is center; add half height to get bottom)
+    let currentY = this.modal.title.y + this.modal.title.height / 2;
     currentY = this.createYear(width, locationData.year, currentY);
     currentY = this.createDescription(width, locationData.description, currentY, modalDimensions.width);
     currentY = this.createSkillsSection(width, locationData.skills, currentY);
@@ -114,6 +120,71 @@ export default class UIScene extends Phaser.Scene {
     this.createResumeButton(width, locationId, currentY);
     this.createCloseButton(width, height, modalDimensions);
     this.setupKeyboardListeners();
+    
+    // Animate modal entrance
+    this.animateModalEntrance();
+  }
+  
+  animateModalEntrance() {
+    if (!this.modal || !this.modal.modalBg) return;
+    
+    // Start with modal scaled down and transparent
+    const initialScale = 0.5;
+    const initialAlpha = 0;
+    
+    this.modal.modalBg.setScale(initialScale);
+    this.modal.modalBg.setAlpha(initialAlpha);
+    this.modal.overlay.setAlpha(0);
+    
+    // Animate overlay fade in
+    this.tweens.add({
+      targets: this.modal.overlay,
+      alpha: UIScene.STYLES.OPACITY.OVERLAY,
+      duration: 300,
+      ease: 'Power2'
+    });
+    
+    // Animate modal scale and fade in
+    this.tweens.add({
+      targets: this.modal.modalBg,
+      scale: 1,
+      alpha: UIScene.STYLES.OPACITY.MODAL_BG,
+      duration: 400,
+      ease: 'Back.easeOut',
+      onComplete: () => {
+        // Animate content elements appearing
+        this.animateContentEntrance();
+      }
+    });
+  }
+  
+  animateContentEntrance() {
+    if (!this.modal) return;
+    
+    const elements = [
+      this.modal.title,
+      this.modal.year,
+      this.modal.description,
+      this.modal.skillsTitle,
+      ...(this.modal.skillsList || []),
+      ...(this.modal.linkButtons || []),
+      this.modal.closeBtn
+    ].filter(el => el);
+    
+    elements.forEach((element, index) => {
+      if (element) {
+        element.setAlpha(0);
+        element.setY(element.y - 20);
+        this.tweens.add({
+          targets: element,
+          alpha: 1,
+          y: element.y + 20,
+          duration: 300,
+          delay: index * 50,
+          ease: 'Power2'
+        });
+      }
+    });
   }
 
   calculateModalDimensions(screenWidth, screenHeight) {
@@ -206,14 +277,16 @@ export default class UIScene extends Phaser.Scene {
   }
 
   createDescription(width, descriptionText, startY, modalWidth) {
-    const descText = this.wordWrap(descriptionText || '', modalWidth - UIScene.STYLES.SIZES.CONTENT_PADDING);
     const hasYear = !!this.modal.year;
     const spacing = hasYear ? UIScene.STYLES.SIZES.YEAR_DESC_SPACING : UIScene.STYLES.SIZES.DESC_SPACING;
-    
+
+    const descriptionY = startY + spacing;
+    const maxY = this.modal.modalBottom - UIScene.STYLES.SIZES.MODAL_PADDING;
+
     const description = this.add.text(
       width / 2,
-      startY + spacing,
-      descText,
+      descriptionY,
+      descriptionText || '',
       {
         font: UIScene.STYLES.FONTS.DESCRIPTION,
         fill: UIScene.STYLES.COLORS.TEXT,
@@ -224,15 +297,25 @@ export default class UIScene extends Phaser.Scene {
     description.setOrigin(0.5, 0);
     description.setScrollFactor(0);
     
+    // Check if description extends beyond modal, and adjust if needed
+    const descBottom = description.y + description.height;
+    if (descBottom > maxY) {
+      description.setY(maxY - description.height);
+    }
+    
     this.modal.elements.push(description);
     this.modal.description = description;
-    return description.y + description.height;
+    return Math.max(description.y + description.height, descriptionY);
   }
 
   createSkillsSection(width, skills, startY) {
     if (!skills || skills.length === 0) return startY;
     
+    const maxY = this.modal.modalBottom - UIScene.STYLES.SIZES.MODAL_PADDING;
     const currentY = startY + UIScene.STYLES.SIZES.SKILLS_SPACING;
+    
+    // Check if there's enough space for skills section
+    if (currentY >= maxY) return startY;
     
     const skillsTitle = this.add.text(
       width / 2,
@@ -253,6 +336,9 @@ export default class UIScene extends Phaser.Scene {
     const skillsList = [];
     
     skills.forEach(skill => {
+      // Stop adding skills if we're running out of space
+      if (skillY >= maxY) return;
+      
       const skillText = this.add.text(
         width / 2,
         skillY,
@@ -277,7 +363,12 @@ export default class UIScene extends Phaser.Scene {
   createLinks(width, links, startY) {
     if (!links || links.length === 0) return startY;
     
+    const maxY = this.modal.modalBottom - UIScene.STYLES.SIZES.MODAL_PADDING;
     const currentY = startY + UIScene.STYLES.SIZES.LINK_SPACING;
+    
+    // Check if there's enough space for links
+    if (currentY + UIScene.STYLES.SIZES.LINK_BUTTON_HEIGHT > maxY) return startY;
+    
     const totalLinksWidth = (links.length - 1) * UIScene.STYLES.SIZES.LINK_BUTTON_GAP;
     const linkStartX = width / 2 - totalLinksWidth / 2;
     const linkButtons = [];
@@ -311,7 +402,38 @@ export default class UIScene extends Phaser.Scene {
       UIScene.STYLES.COLORS.STROKE
     );
     button.setInteractive({ useHandCursor: true });
-    button.on('pointerdown', onClick);
+    
+    // Hover effects
+    button.on('pointerover', () => {
+      this.tweens.add({
+        targets: button,
+        scale: 1.1,
+        fillTint: 0x60a5fa,
+        duration: 150,
+        ease: 'Power2'
+      });
+    });
+    
+    button.on('pointerout', () => {
+      this.tweens.add({
+        targets: button,
+        scale: 1,
+        fillTint: 0xffffff,
+        duration: 150,
+        ease: 'Power2'
+      });
+    });
+    
+    button.on('pointerdown', () => {
+      this.tweens.add({
+        targets: button,
+        scale: 0.95,
+        duration: 100,
+        yoyo: true,
+        ease: 'Power2',
+        onComplete: onClick
+      });
+    });
     
     const buttonText = this.add.text(x, y, text, {
       font: UIScene.STYLES.FONTS.LINK,
@@ -328,7 +450,11 @@ export default class UIScene extends Phaser.Scene {
   createResumeButton(width, locationId, startY) {
     if (locationId !== 'projects') return;
     
+    const maxY = this.modal.modalBottom - UIScene.STYLES.SIZES.MODAL_PADDING;
     const resumeY = startY + UIScene.STYLES.SIZES.RESUME_SPACING;
+    
+    // Check if there's enough space for resume button
+    if (resumeY + UIScene.STYLES.SIZES.RESUME_BUTTON_HEIGHT > maxY) return;
     
     const resumeBtn = this.add.rectangle(
       width / 2,
@@ -345,6 +471,27 @@ export default class UIScene extends Phaser.Scene {
     );
     resumeBtn.setInteractive({ useHandCursor: true });
     
+    // Hover effects
+    resumeBtn.on('pointerover', () => {
+      this.tweens.add({
+        targets: resumeBtn,
+        scale: 1.05,
+        fillTint: 0xa78bfa,
+        duration: 150,
+        ease: 'Power2'
+      });
+    });
+    
+    resumeBtn.on('pointerout', () => {
+      this.tweens.add({
+        targets: resumeBtn,
+        scale: 1,
+        fillTint: 0xffffff,
+        duration: 150,
+        ease: 'Power2'
+      });
+    });
+    
     const resumeBtnText = this.add.text(
       resumeBtn.x,
       resumeBtn.y,
@@ -358,7 +505,16 @@ export default class UIScene extends Phaser.Scene {
     resumeBtnText.setScrollFactor(0);
     
     resumeBtn.on('pointerdown', () => {
-      window.open('/resume.pdf', '_blank', 'noopener,noreferrer');
+      this.tweens.add({
+        targets: resumeBtn,
+        scale: 0.95,
+        duration: 100,
+        yoyo: true,
+        ease: 'Power2',
+        onComplete: () => {
+          window.open(this.resumeUrl, '_blank', 'noopener,noreferrer');
+        }
+      });
     });
     
     if (!this.modal.linkButtons) {
@@ -384,6 +540,27 @@ export default class UIScene extends Phaser.Scene {
     );
     closeBtn.setInteractive({ useHandCursor: true });
     
+    // Hover effects
+    closeBtn.on('pointerover', () => {
+      this.tweens.add({
+        targets: closeBtn,
+        scale: 1.15,
+        fillTint: 0xff6b6b,
+        duration: 150,
+        ease: 'Power2'
+      });
+    });
+    
+    closeBtn.on('pointerout', () => {
+      this.tweens.add({
+        targets: closeBtn,
+        scale: 1,
+        fillTint: 0xffffff,
+        duration: 150,
+        ease: 'Power2'
+      });
+    });
+    
     const closeText = this.add.text(
       closeBtn.x,
       closeBtn.y,
@@ -396,7 +573,16 @@ export default class UIScene extends Phaser.Scene {
     closeText.setOrigin(0.5);
     closeText.setScrollFactor(0);
     
-    closeBtn.on('pointerdown', () => this.closeModal());
+    closeBtn.on('pointerdown', () => {
+      this.tweens.add({
+        targets: closeBtn,
+        scale: 0.9,
+        duration: 100,
+        yoyo: true,
+        ease: 'Power2',
+        onComplete: () => this.closeModal()
+      });
+    });
     
     this.modal.elements.push(closeBtn, closeText);
     this.modal.closeBtn = closeBtn;
@@ -407,43 +593,6 @@ export default class UIScene extends Phaser.Scene {
     const escKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.ESC);
     escKey.once('down', () => this.closeModal());
     this.modal.escKey = escKey;
-  }
-
-  wordWrap(text, maxWidth) {
-    if (!text || typeof text !== 'string') {
-      return '';
-    }
-    
-    // Create cached temp text object if it doesn't exist
-    if (!this.wordWrapTempText) {
-      this.wordWrapTempText = this.add.text(-1000, -1000, '', {
-        font: UIScene.STYLES.FONTS.DESCRIPTION
-      });
-    }
-    
-    const words = text.split(' ');
-    const lines = [];
-    let currentLine = '';
-
-    words.forEach(word => {
-      const testLine = currentLine + (currentLine ? ' ' : '') + word;
-      this.wordWrapTempText.setText(testLine);
-      
-      if (this.wordWrapTempText.width <= maxWidth) {
-        currentLine = testLine;
-      } else {
-        if (currentLine) {
-          lines.push(currentLine);
-        }
-        currentLine = word;
-      }
-    });
-
-    if (currentLine) {
-      lines.push(currentLine);
-    }
-
-    return lines.join('\n');
   }
 
   destroyModal() {
@@ -469,15 +618,45 @@ export default class UIScene extends Phaser.Scene {
   }
 
   closeModal() {
-    this.destroyModal();
-
-    // Resume world scene movement
-    const worldScene = this.scene.get('WorldScene');
-    if (worldScene?.resumeMovement) {
-      worldScene.resumeMovement();
+    if (!this.modal) return;
+    
+    // Animate modal exit
+    if (this.modal.modalBg) {
+      this.tweens.add({
+        targets: this.modal.modalBg,
+        scale: 0.5,
+        alpha: 0,
+        duration: 300,
+        ease: 'Back.easeIn'
+      });
     }
+    
+    if (this.modal.overlay) {
+      this.tweens.add({
+        targets: this.modal.overlay,
+        alpha: 0,
+        duration: 300,
+        ease: 'Power2',
+        onComplete: () => {
+          this.destroyModal();
+          
+          // Resume world scene movement
+          const worldScene = this.scene.get('WorldScene');
+          if (worldScene?.resumeMovement) {
+            worldScene.resumeMovement();
+          }
 
-    this.scene.stop();
+          this.scene.stop();
+        }
+      });
+    } else {
+      this.destroyModal();
+      const worldScene = this.scene.get('WorldScene');
+      if (worldScene?.resumeMovement) {
+        worldScene.resumeMovement();
+      }
+      this.scene.stop();
+    }
   }
 }
 
