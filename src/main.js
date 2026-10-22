@@ -8,8 +8,9 @@ const config = {
   width: 1280,
   height: 720,
   parent: 'game-container',
-  backgroundColor: '#87ceeb', // Sky blue for Mario style
-  pixelArt: true,
+  backgroundColor: '#070a18',
+  antialias: true,
+  roundPixels: false,
   physics: {
     default: 'arcade',
     arcade: {
@@ -34,3 +35,7 @@ const config = {
 
 const game = new Phaser.Game(config);
 
+// Expose the game instance in development to make debugging easier
+if (import.meta.env.DEV) {
+  window.game = game;
+}

@@ -1,364 +1,310 @@
+import { FONT, gradientTexture, radialTexture } from '../ui/theme.js';
+
+const SKY_STOPS = [
+  [0, '#070a18'],
+  [0.4, '#0d1330'],
+  [0.68, '#191a45'],
+  [0.86, '#2a1d55'],
+  [1, '#3b2560']
+];
+
+function roundRect(ctx, x, y, w, h, r) {
+  const radius = Math.min(r, w / 2, h / 2);
+  ctx.beginPath();
+  if (ctx.roundRect) {
+    ctx.roundRect(x, y, w, h, radius);
+  } else {
+    ctx.moveTo(x + radius, y);
+    ctx.arcTo(x + w, y, x + w, y + h, radius);
+    ctx.arcTo(x + w, y + h, x, y + h, radius);
+    ctx.arcTo(x, y + h, x, y, radius);
+    ctx.arcTo(x, y, x + w, y, radius);
+    ctx.closePath();
+  }
+}
+
+function paint(scene, key, w, h, draw) {
+  if (scene.textures.exists(key)) return;
+  const tex = scene.textures.createCanvas(key, w, h);
+  draw(tex.getContext(), w, h);
+  tex.refresh();
+}
+
 export default class PreloadScene extends Phaser.Scene {
   constructor() {
     super({ key: 'PreloadScene' });
   }
 
   preload() {
-    // Create loading bar
     const width = this.cameras.main.width;
     const height = this.cameras.main.height;
-    const progressBar = this.add.graphics();
-    const progressBox = this.add.graphics();
-    progressBox.fillStyle(0x222222, 0.8);
-    progressBox.fillRect(width / 2 - 160, height / 2 - 25, 320, 50);
 
-    const loadingText = this.make.text({
-      x: width / 2,
-      y: height / 2 - 50,
-      text: 'Loading...',
-      style: {
-        font: '20px monospace',
-        fill: '#ffffff'
-      }
-    });
-    loadingText.setOrigin(0.5, 0.5);
+    const barW = 280;
+    const barH = 6;
+    const track = this.add.graphics();
+    track.fillStyle(0xffffff, 0.08);
+    track.fillRoundedRect(width / 2 - barW / 2, height / 2, barW, barH, barH / 2);
 
-    // Update progress bar
+    const bar = this.add.graphics();
+    const label = this.add.text(width / 2, height / 2 - 34, 'Preparing your journey', {
+      fontFamily: FONT,
+      fontSize: '15px',
+      fontStyle: '500',
+      color: '#98a2c2'
+    }).setOrigin(0.5);
+
     this.load.on('progress', (value) => {
-      progressBar.clear();
-      progressBar.fillStyle(0xffffff, 1);
-      progressBar.fillRect(width / 2 - 150, height / 2 - 15, 300 * value, 30);
+      bar.clear();
+      bar.fillStyle(0x7c5cff, 1);
+      bar.fillRoundedRect(width / 2 - barW / 2, height / 2, Math.max(barH, barW * value), barH, barH / 2);
     });
 
     this.load.on('complete', () => {
-      progressBar.destroy();
-      progressBox.destroy();
-      loadingText.destroy();
+      bar.destroy();
+      track.destroy();
+      label.destroy();
     });
 
     this.load.on('loaderror', (file) => {
       console.error('Failed to load:', file.key, file.url);
     });
 
-    // Player sprites will be created dynamically below
+    this.createTextures();
 
-    // Load tilemap
-    // For now, we'll create a simple map programmatically
-    // Later you can replace this with a Tiled map export
     const baseUrl = import.meta.env.BASE_URL || '/';
     this.load.json('mapData', baseUrl + 'data/mapData.json');
-    
-    // Load locations data
     this.load.json('locations', baseUrl + 'data/locations.json');
-
-    // Load tileset (placeholder - simple colored tiles)
-    // In production, replace with actual tileset images
-    this.createPlaceholderTiles();
-    
-    // Create player sprites with animations
-    this.createPlayerSprites();
-    
-    // Create coin sprite
-    this.createCoinSprite();
-  }
-  
-  createCoinSprite() {
-    const size = 16;
-    const coin = this.add.graphics();
-    
-    // Outer circle (gold)
-    coin.fillStyle(0xffd700);
-    coin.fillCircle(size / 2, size / 2, size / 2 - 2);
-    
-    // Inner highlight
-    coin.fillStyle(0xffed4e);
-    coin.fillCircle(size / 2 - 2, size / 2 - 2, size / 3);
-    
-    // Center dot
-    coin.fillStyle(0xffd700);
-    coin.fillCircle(size / 2, size / 2, 2);
-    
-    // Border
-    coin.lineStyle(1, 0xcc9900);
-    coin.strokeCircle(size / 2, size / 2, size / 2 - 1);
-    
-    coin.generateTexture('coin', size, size);
-    coin.destroy();
   }
 
-  createPlayerSprites() {
-    const size = 16;
-    
-    // Mario-style idle frame (red cap, blue overalls, brown shirt)
-    const idleFrame = this.add.graphics();
-    // Red cap
-    idleFrame.fillStyle(0xff0000);
-    idleFrame.fillRect(2, 0, 12, 4);
-    // Brown shirt
-    idleFrame.fillStyle(0xa05000);
-    idleFrame.fillRect(4, 4, 8, 4);
-    // Blue overalls
-    idleFrame.fillStyle(0x0080ff);
-    idleFrame.fillRect(4, 8, 8, 8);
-    // White gloves
-    idleFrame.fillStyle(0xffffff);
-    idleFrame.fillRect(2, 8, 2, 4);
-    idleFrame.fillRect(12, 8, 2, 4);
-    // Face/skin
-    idleFrame.fillStyle(0xffff80);
-    idleFrame.fillRect(5, 4, 6, 3);
-    // Eyes
-    idleFrame.fillStyle(0x000000);
-    idleFrame.fillRect(6, 5, 1, 1);
-    idleFrame.fillRect(9, 5, 1, 1);
-    // Mustache
-    idleFrame.fillStyle(0x000000);
-    idleFrame.fillRect(5, 7, 6, 1);
-    idleFrame.generateTexture('player_idle', size, size);
-    idleFrame.destroy();
+  createTextures() {
+    const { width, height } = this.cameras.main;
 
-    // Walk frame 1 (left leg forward)
-    const walk1 = this.add.graphics();
-    // Red cap
-    walk1.fillStyle(0xff0000);
-    walk1.fillRect(2, 0, 12, 4);
-    // Brown shirt
-    walk1.fillStyle(0xa05000);
-    walk1.fillRect(4, 4, 8, 4);
-    // Blue overalls
-    walk1.fillStyle(0x0080ff);
-    walk1.fillRect(4, 8, 8, 8);
-    // Left leg extended
-    walk1.fillStyle(0x0060cc);
-    walk1.fillRect(3, 14, 4, 4);
-    // White gloves
-    walk1.fillStyle(0xffffff);
-    walk1.fillRect(2, 8, 2, 4);
-    walk1.fillRect(12, 8, 2, 4);
-    // Face
-    walk1.fillStyle(0xffff80);
-    walk1.fillRect(5, 4, 6, 3);
-    // Eyes
-    walk1.fillStyle(0x000000);
-    walk1.fillRect(6, 5, 1, 1);
-    walk1.fillRect(9, 5, 1, 1);
-    // Mustache
-    walk1.fillStyle(0x000000);
-    walk1.fillRect(5, 7, 6, 1);
-    walk1.generateTexture('player_walk1', size, size);
-    walk1.destroy();
+    // Full-screen sky gradient.
+    gradientTexture(this, 'sky', 16, 512, SKY_STOPS);
+    gradientTexture(this, 'accent-line', 512, 8, [
+      [0, '#7c5cff'],
+      [0.5, '#22d3ee'],
+      [1, '#f472b6']
+    ], 'h');
 
-    // Walk frame 2 (right leg forward)
-    const walk2 = this.add.graphics();
-    // Red cap
-    walk2.fillStyle(0xff0000);
-    walk2.fillRect(2, 0, 12, 4);
-    // Brown shirt
-    walk2.fillStyle(0xa05000);
-    walk2.fillRect(4, 4, 8, 4);
-    // Blue overalls
-    walk2.fillStyle(0x0080ff);
-    walk2.fillRect(4, 8, 8, 8);
-    // Right leg extended
-    walk2.fillStyle(0x0060cc);
-    walk2.fillRect(9, 14, 4, 4);
-    // White gloves
-    walk2.fillStyle(0xffffff);
-    walk2.fillRect(2, 8, 2, 4);
-    walk2.fillRect(12, 8, 2, 4);
-    // Face
-    walk2.fillStyle(0xffff80);
-    walk2.fillRect(5, 4, 6, 3);
-    // Eyes
-    walk2.fillStyle(0x000000);
-    walk2.fillRect(6, 5, 1, 1);
-    walk2.fillRect(9, 5, 1, 1);
-    // Mustache
-    walk2.fillStyle(0x000000);
-    walk2.fillRect(5, 7, 6, 1);
-    walk2.generateTexture('player_walk2', size, size);
-    walk2.destroy();
+    // Soft radial assets.
+    radialTexture(this, 'glow', 256, 256, [
+      [0, 'rgba(255,255,255,1)'],
+      [0.35, 'rgba(255,255,255,0.45)'],
+      [1, 'rgba(255,255,255,0)']
+    ]);
+    radialTexture(this, 'spark', 64, 64, [
+      [0, 'rgba(255,255,255,1)'],
+      [0.5, 'rgba(255,255,255,0.6)'],
+      [1, 'rgba(255,255,255,0)']
+    ]);
+    radialTexture(this, 'shadow', 160, 60, [
+      [0, 'rgba(0,0,0,0.55)'],
+      [0.6, 'rgba(0,0,0,0.25)'],
+      [1, 'rgba(0,0,0,0)']
+    ]);
+
+    this.createCoinTexture();
+    this.createCloudTexture();
+    this.createHillTexture('hill-far', 1000, 320, ['#241f52', '#151a3a'], 0.2);
+    this.createHillTexture('hill-mid', 860, 260, ['#1c2450', '#101533'], 0.34);
+    this.createTreeTexture();
+    this.createPlayerTextures();
+
+    // Vignette overlay (screen sized).
+    paint(this, 'vignette', width, height, (ctx, w, h) => {
+      const g = ctx.createRadialGradient(w / 2, h / 2, h * 0.25, w / 2, h / 2, h * 0.78);
+      g.addColorStop(0, 'rgba(3,5,14,0)');
+      g.addColorStop(1, 'rgba(3,5,14,0.6)');
+      ctx.fillStyle = g;
+      ctx.fillRect(0, 0, w, h);
+    });
   }
 
-  createPlaceholderTiles() {
-    const tileSize = 32;
-    
-    // Mario-style grass tile (green with pattern)
-    const grass = this.add.graphics();
-    // Base grass color
-    grass.fillStyle(0x7cb847);
-    grass.fillRect(0, 0, tileSize, tileSize);
-    // Grass pattern
-    grass.fillStyle(0x68a73a);
-    grass.fillRect(0, 0, 16, 16);
-    grass.fillRect(16, 16, 16, 16);
-    // Grass texture lines
-    grass.lineStyle(1, 0x5a8a2d);
-    grass.moveTo(0, 16);
-    grass.lineTo(32, 16);
-    grass.moveTo(16, 0);
-    grass.lineTo(16, 32);
-    grass.generateTexture('grass', tileSize, tileSize);
-    grass.destroy();
+  createCoinTexture() {
+    paint(this, 'coin', 56, 56, (ctx) => {
+      const g = ctx.createLinearGradient(0, 6, 0, 50);
+      g.addColorStop(0, '#fde68a');
+      g.addColorStop(0.55, '#fbbf24');
+      g.addColorStop(1, '#f59e0b');
+      ctx.fillStyle = g;
+      ctx.beginPath();
+      ctx.arc(28, 28, 22, 0, Math.PI * 2);
+      ctx.fill();
 
-    // Dirt tile (brown with dots texture)
-    const dirt = this.add.graphics();
-    dirt.fillStyle(0x8b4513);
-    dirt.fillRect(0, 0, tileSize, tileSize);
-    // Dots pattern
-    dirt.fillStyle(0x6b3413);
-    dirt.fillRect(4, 4, 2, 2);
-    dirt.fillRect(12, 8, 2, 2);
-    dirt.fillRect(20, 4, 2, 2);
-    dirt.fillRect(8, 16, 2, 2);
-    dirt.fillRect(16, 20, 2, 2);
-    dirt.fillRect(24, 12, 2, 2);
-    dirt.generateTexture('dirt', tileSize, tileSize);
-    dirt.destroy();
+      ctx.strokeStyle = 'rgba(255,255,255,0.65)';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.arc(28, 28, 20.5, 0, Math.PI * 2);
+      ctx.stroke();
 
-    // Brick block (brown with question mark block style)
-    const brick = this.add.graphics();
-    // Brick base
-    brick.fillStyle(0xcd853f);
-    brick.fillRect(0, 0, tileSize, tileSize);
-    // Brick lines
-    brick.lineStyle(1, 0x8b4513);
-    brick.moveTo(0, 0);
-    brick.lineTo(32, 0);
-    brick.moveTo(0, 16);
-    brick.lineTo(32, 16);
-    for (let i = 8; i < 32; i += 8) {
-      brick.moveTo(i - 4, 0);
-      brick.lineTo(i - 4, 16);
+      ctx.strokeStyle = 'rgba(180,83,9,0.45)';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.arc(28, 28, 15, 0, Math.PI * 2);
+      ctx.stroke();
+
+      ctx.fillStyle = 'rgba(255,255,255,0.75)';
+      ctx.beginPath();
+      ctx.ellipse(21, 18, 7, 4.5, -0.6, 0, Math.PI * 2);
+      ctx.fill();
+    });
+  }
+
+  createCloudTexture() {
+    paint(this, 'cloud', 280, 120, (ctx) => {
+      ctx.filter = 'blur(10px)';
+      ctx.fillStyle = 'rgba(255,255,255,0.9)';
+      const blobs = [
+        [90, 70, 46], [140, 52, 58], [196, 68, 44], [160, 78, 40], [60, 80, 28]
+      ];
+      for (const [x, y, r] of blobs) {
+        ctx.beginPath();
+        ctx.arc(x, y, r, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      ctx.filter = 'none';
+    });
+  }
+
+  createHillTexture(key, w, h, [top, bottom], rimAlpha) {
+    paint(this, key, w, h, (ctx) => {
+      const g = ctx.createLinearGradient(0, 60, 0, h);
+      g.addColorStop(0, top);
+      g.addColorStop(1, bottom);
+      ctx.fillStyle = g;
+
+      ctx.beginPath();
+      ctx.moveTo(0, h);
+      ctx.lineTo(0, h * 0.55);
+      ctx.quadraticCurveTo(w * 0.16, h * 0.12, w * 0.36, h * 0.52);
+      ctx.quadraticCurveTo(w * 0.55, h * 0.85, w * 0.72, h * 0.42);
+      ctx.quadraticCurveTo(w * 0.87, h * 0.18, w, h * 0.5);
+      ctx.lineTo(w, h);
+      ctx.closePath();
+      ctx.fill();
+
+      ctx.strokeStyle = `rgba(160,170,255,${rimAlpha})`;
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(0, h * 0.55);
+      ctx.quadraticCurveTo(w * 0.16, h * 0.12, w * 0.36, h * 0.52);
+      ctx.quadraticCurveTo(w * 0.55, h * 0.85, w * 0.72, h * 0.42);
+      ctx.quadraticCurveTo(w * 0.87, h * 0.18, w, h * 0.5);
+      ctx.stroke();
+    });
+  }
+
+  createTreeTexture() {
+    paint(this, 'tree', 160, 240, (ctx) => {
+      ctx.fillStyle = '#0b1024';
+      roundRect(ctx, 74, 140, 12, 100, 6);
+      ctx.fill();
+
+      const canopy = [
+        [60, 100, 42], [100, 84, 50], [128, 112, 34], [78, 128, 38], [112, 146, 26]
+      ];
+      for (const [x, y, r] of canopy) {
+        ctx.beginPath();
+        ctx.arc(x, y, r, 0, Math.PI * 2);
+        ctx.fill();
+      }
+
+      ctx.strokeStyle = 'rgba(124,92,255,0.22)';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.arc(100, 84, 50, Math.PI * 1.05, Math.PI * 1.75);
+      ctx.stroke();
+    });
+  }
+
+  createPlayerTextures() {
+    const legFrames = {
+      player_idle: { left: [21, 66, 18], right: [35, 66, 18], arm: 0 },
+      player_walk1: { left: [18, 68, 16], right: [36, 64, 20], arm: 2 },
+      player_walk2: { left: [22, 64, 20], right: [33, 68, 16], arm: -2 },
+      player_walk3: { left: [16, 66, 18], right: [37, 66, 18], arm: 1 }
+    };
+
+    for (const [key, frame] of Object.entries(legFrames)) {
+      paint(this, key, 64, 88, (ctx) => {
+        // Soft contact shadow is drawn separately in-scene.
+
+        // Backpack
+        ctx.fillStyle = '#0f2f4a';
+        roundRect(ctx, 9, 40, 14, 28, 7);
+        ctx.fill();
+
+        // Legs
+        ctx.fillStyle = '#1b2340';
+        roundRect(ctx, frame.left[0], frame.left[1], 8, frame.left[2], 4);
+        ctx.fill();
+        roundRect(ctx, frame.right[0], frame.right[1], 8, frame.right[2], 4);
+        ctx.fill();
+
+        // Shoes
+        ctx.fillStyle = '#0b1024';
+        roundRect(ctx, frame.left[0] - 1, frame.left[1] + frame.left[2] - 4, 11, 6, 3);
+        ctx.fill();
+        roundRect(ctx, frame.right[0] - 1, frame.right[1] + frame.right[2] - 4, 11, 6, 3);
+        ctx.fill();
+
+        // Body
+        const bodyGradient = ctx.createLinearGradient(0, 36, 0, 70);
+        bodyGradient.addColorStop(0, '#8b6cff');
+        bodyGradient.addColorStop(1, '#6644f0');
+        ctx.fillStyle = bodyGradient;
+        roundRect(ctx, 17, 36, 30, 34, 11);
+        ctx.fill();
+
+        // Arms
+        ctx.fillStyle = '#7c5cff';
+        roundRect(ctx, 12, 42 + frame.arm, 9, 22, 4.5);
+        ctx.fill();
+        roundRect(ctx, 43, 42 - frame.arm, 9, 22, 4.5);
+        ctx.fill();
+
+        // Scarf
+        ctx.fillStyle = '#f472b6';
+        roundRect(ctx, 16, 43, 32, 6, 3);
+        ctx.fill();
+
+        // Head
+        ctx.fillStyle = '#f4c9a4';
+        ctx.beginPath();
+        ctx.arc(32, 23, 13, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Hair
+        ctx.fillStyle = '#161228';
+        ctx.beginPath();
+        ctx.arc(32, 23, 13, Math.PI * 1.02, Math.PI * 1.98);
+        ctx.fill();
+        ctx.beginPath();
+        ctx.ellipse(22, 16, 7, 5, -0.5, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Eyes
+        ctx.fillStyle = '#161228';
+        ctx.beginPath();
+        ctx.arc(27.5, 25, 1.8, 0, Math.PI * 2);
+        ctx.arc(36.5, 25, 1.8, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Highlight on the hoodie
+        ctx.strokeStyle = 'rgba(255,255,255,0.25)';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(22, 42);
+        ctx.lineTo(22, 60);
+        ctx.stroke();
+      });
     }
-    for (let i = 12; i < 32; i += 8) {
-      brick.moveTo(i, 16);
-      brick.lineTo(i, 32);
-    }
-    brick.generateTexture('brick', tileSize, tileSize);
-    brick.destroy();
-
-    // Question mark block
-    const qBlock = this.add.graphics();
-    qBlock.fillStyle(0xffcc00);
-    qBlock.fillRect(0, 0, tileSize, tileSize);
-    qBlock.lineStyle(2, 0x000000);
-    qBlock.strokeRect(0, 0, tileSize, tileSize);
-    // Yellow shading
-    qBlock.fillStyle(0xdddd00);
-    qBlock.fillRect(0, 0, tileSize, 8);
-    qBlock.fillRect(0, 0, 8, tileSize);
-    qBlock.fillStyle(0xeeee66);
-    qBlock.fillRect(24, 0, 8, tileSize);
-    qBlock.fillRect(0, 24, tileSize, 8);
-    // Question mark
-    qBlock.lineStyle(2, 0x000000);
-    qBlock.beginPath();
-    qBlock.arc(16, 10, 5, 0, Math.PI * 2, false);
-    qBlock.closePath();
-    qBlock.strokePath();
-    qBlock.moveTo(11, 15);
-    qBlock.lineTo(11, 20);
-    qBlock.strokePath();
-    qBlock.generateTexture('question_block', tileSize, tileSize);
-    qBlock.destroy();
-
-    // Solid block (blue Mario World style with bolts)
-    const solidBlock = this.add.graphics();
-    solidBlock.fillStyle(0x5aa3ff);
-    solidBlock.fillRect(0, 0, tileSize, tileSize);
-    solidBlock.lineStyle(2, 0x000000);
-    solidBlock.strokeRect(0, 0, tileSize, tileSize);
-    // Light blue highlight
-    solidBlock.fillStyle(0x8cc5ff);
-    solidBlock.fillRect(0, 0, tileSize, 8);
-    solidBlock.fillRect(0, 0, 8, tileSize);
-    // Dark blue shadow
-    solidBlock.fillStyle(0x3d7ddb);
-    solidBlock.fillRect(24, 0, 8, tileSize);
-    solidBlock.fillRect(0, 24, tileSize, 8);
-    // Corner bolts
-    solidBlock.fillStyle(0xffffff);
-    solidBlock.fillRect(3, 3, 4, 4);
-    solidBlock.fillRect(25, 3, 4, 4);
-    solidBlock.fillRect(3, 25, 4, 4);
-    solidBlock.fillRect(25, 25, 4, 4);
-    solidBlock.generateTexture('solid_block', tileSize, tileSize);
-    solidBlock.destroy();
-
-    // Create background elements
-    this.createBackgroundElements();
-  }
-  
-  createBackgroundElements() {
-    // Blue sky background
-    const sky = this.add.graphics();
-    sky.fillStyle(0x87ceeb);
-    sky.fillRect(0, 0, 256, 256);
-    sky.generateTexture('sky', 256, 256);
-    sky.destroy();
-
-    // Cloud (white fluffy)
-    const cloud = this.add.graphics();
-    cloud.fillStyle(0xffffff);
-    cloud.fillCircle(10, 10, 8);
-    cloud.fillCircle(20, 8, 10);
-    cloud.fillCircle(30, 10, 8);
-    cloud.fillCircle(18, 16, 6);
-    cloud.fillCircle(28, 16, 8);
-    cloud.generateTexture('cloud', 40, 24);
-    cloud.destroy();
-
-    // Big cloud
-    const bigCloud = this.add.graphics();
-    bigCloud.fillStyle(0xffffff);
-    bigCloud.fillCircle(15, 15, 12);
-    bigCloud.fillCircle(30, 12, 15);
-    bigCloud.fillCircle(45, 15, 12);
-    bigCloud.fillCircle(25, 24, 10);
-    bigCloud.fillCircle(40, 24, 12);
-    bigCloud.generateTexture('big_cloud', 60, 36);
-    bigCloud.destroy();
-
-    // Mountain (light blue with highlights)
-    const mountain = this.add.graphics();
-    mountain.fillStyle(0xadd8e6);
-    mountain.beginPath();
-    mountain.moveTo(0, 100);
-    mountain.lineTo(50, 0);
-    mountain.lineTo(100, 100);
-    mountain.closePath();
-    mountain.fillPath();
-    // Highlight
-    mountain.fillStyle(0xd4e8f0);
-    mountain.beginPath();
-    mountain.moveTo(0, 100);
-    mountain.lineTo(30, 30);
-    mountain.lineTo(50, 100);
-    mountain.closePath();
-    mountain.fillPath();
-    mountain.generateTexture('mountain', 100, 100);
-    mountain.destroy();
-
-    // Bush
-    const bush = this.add.graphics();
-    bush.fillStyle(0x7cb847);
-    bush.fillCircle(8, 8, 6);
-    bush.fillCircle(16, 8, 8);
-    bush.fillCircle(24, 8, 6);
-    bush.fillCircle(12, 14, 6);
-    bush.fillCircle(20, 14, 6);
-    bush.generateTexture('bush', 32, 20);
-    bush.destroy();
   }
 
   create() {
-    // Remove loading text from HTML
     const loading = document.getElementById('loading');
     if (loading) loading.remove();
-    
-    // Data is already loaded via Phaser's loader
     this.scene.start('WorldScene');
   }
 }
-
