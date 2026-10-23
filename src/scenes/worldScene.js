@@ -542,7 +542,7 @@ export default class WorldScene extends Phaser.Scene {
     accentBar.fillStyle(C.violet, 0.9);
     accentBar.fillRoundedRect(-panelW / 2 + 34, -panelH / 2 + 26, 44, 3, 1.5);
 
-    const eyebrow = this.add.text(-panelW / 2 + 34, -124, 'INTERACTIVE PORTFOLIO', {
+    const eyebrow = this.add.text(-panelW / 2 + 34, -124, 'TUHIN CHAKRABARTY  ·  INTERACTIVE PORTFOLIO', {
       fontFamily: FONT,
       fontSize: '11px',
       fontStyle: '700',
@@ -556,7 +556,7 @@ export default class WorldScene extends Phaser.Scene {
       color: '#ffffff'
     }).setOrigin(0, 0.5);
 
-    const subtitle = this.add.text(-panelW / 2 + 34, -24, 'Eight stops along the timeline, from childhood to what comes next. Move through the world and open each stop to read the story.', {
+    const subtitle = this.add.text(-panelW / 2 + 34, -24, 'Eight stops along the timeline — childhood in India, VIT Vellore, Bank of America, and leading PRISM 2.0 at PayU. Move through the world and open each stop to read the story.', {
       fontFamily: FONT,
       fontSize: '14.5px',
       fontStyle: '400',

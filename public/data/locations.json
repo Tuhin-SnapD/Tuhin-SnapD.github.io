@@ -1,76 +1,138 @@
 {
   "childhood": {
     "title": "Childhood",
-    "description": "Born and raised in [Your City]. My early years were filled with curiosity about technology and a love for video games. This is where my journey into programming began.",
-    "year": "1990s-2000s",
+    "year": "Early days",
+    "description": "Grew up in India with an early fascination for computers and games. Taking things apart, tinkering with software, and wondering how it all worked turned into a habit that eventually became a career.",
     "links": []
   },
   "school": {
-    "title": "High School",
-    "description": "Attended [School Name] where I excelled in mathematics and science. Discovered my passion for computer science and started learning programming basics.",
-    "year": "2010-2014",
+    "title": "School",
+    "year": "Before 2019",
+    "description": "School years built the foundation: mathematics, science, and the first lines of code. The plan that stuck was simple — study computer science and keep building things on the side.",
     "links": []
   },
   "college": {
-    "title": "University",
-    "description": "Studied Computer Science at [University Name]. Specialized in software engineering and web development. Graduated with honors and multiple projects under my belt.",
-    "year": "2014-2018",
-    "links": []
+    "title": "Vellore Institute of Technology",
+    "year": "2019 — 2023",
+    "description": "B.Tech in Computer Science & Engineering at VIT Vellore. Graduated as a merit holder with a GPA of 8.6/10, with coursework in advanced algorithms, distributed systems, operating systems, networks and DBMS.",
+    "skills": [
+      "C++",
+      "Python",
+      "DSA",
+      "Operating Systems",
+      "Computer Networks",
+      "Distributed Systems",
+      "DBMS"
+    ],
+    "links": [
+      {
+        "text": "VIT Vellore",
+        "url": "https://vit.ac.in/"
+      }
+    ]
   },
   "firstJob": {
-    "title": "First Professional Role",
-    "description": "My first job as a [Job Title] at [Company]. Learned industry best practices, worked on production applications, and gained valuable experience in agile development.",
-    "year": "2018-2020",
+    "title": "Software Engineer 1 · Bank of America",
+    "year": "Jul 2023 — Nov 2025 · GIFT City",
+    "description": "Built low-latency C++ and Python services for the Apex/Martini Global Repo Trading Platform. Designed Optimus, a Python/Tornado support automation platform with RASA NLU, and a React + Flask regression framework that cut manual QA effort by roughly 90%. Earned the 2x Global Gold Recognition Award.",
+    "skills": [
+      "C++",
+      "Python",
+      "React",
+      "Flask",
+      "Tornado",
+      "RASA NLU",
+      "Trading Systems"
+    ],
     "links": []
   },
   "current": {
-    "title": "Current Stage",
-    "description": "Currently working as a [Your Role] at [Company]. Focused on [Technologies/Skills]. Always learning, always building, always improving.",
-    "year": "2020-Present",
-    "links": []
+    "title": "Software Engineer 2 · PayU",
+    "year": "Dec 2025 — Present · Bengaluru",
+    "description": "Leading PRISM 2.0, a secure multi-tenant financial intelligence platform for large-scale SMS ingestion and analysis, along with an AA TSP consent platform. Focused on distributed, event-driven systems, cloud-native delivery, observability and reliability.",
+    "skills": [
+      "Python",
+      "Kafka",
+      "AWS",
+      "Docker",
+      "Terraform",
+      "PostgreSQL",
+      "Distributed Systems"
+    ],
+    "links": [
+      {
+        "text": "PayU",
+        "url": "https://corporate.payu.com/"
+      }
+    ]
   },
   "skills": {
     "title": "Skills & Technologies",
-    "description": "Proficient in JavaScript, TypeScript, React, Node.js, Python, and more. Experienced with cloud platforms, databases, and modern development tools. Always expanding my toolkit.",
     "year": "Ongoing",
+    "description": "Backend and full-stack engineer with a broad toolkit — from low-latency C++ services and Python APIs to React front ends and cloud-native delivery on AWS.",
     "skills": [
-      "JavaScript/TypeScript",
-      "React/Next.js",
-      "Node.js",
       "Python",
-      "Git",
+      "C++",
+      "TypeScript",
+      "JavaScript",
+      "SQL",
+      "Perl",
+      "React",
+      "Angular",
+      "Django",
+      "Flask",
+      "FastAPI",
+      "Tornado",
+      "Node.js",
+      "PostgreSQL",
+      "DynamoDB",
+      "Kafka",
+      "RabbitMQ",
+      "AWS",
       "Docker",
-      "AWS/Cloud"
+      "Terraform",
+      "Jenkins"
     ],
     "links": []
   },
   "projects": {
     "title": "Projects",
-    "description": "Check out my GitHub to see various projects including web applications, open-source contributions, and personal experiments. Always working on something new!",
-    "year": "Various",
+    "year": "Selected work",
+    "description": "Pricing intelligence, NLP-driven news analysis, LLM task planning and full-stack platforms. Most of it is open source on GitHub — PricePilot and NewsMelt are good places to start.",
     "links": [
       {
-        "text": "GitHub Profile",
-        "url": "https://github.com/Tuhin-SnapD",
-        "icon": "github"
+        "text": "PricePilot",
+        "url": "https://github.com/Tuhin-SnapD/PricePilot-Intelligent-Pricing-Dashboard"
       },
       {
-        "text": "LinkedIn",
-        "url": "https://linkedin.com/in/yourprofile",
-        "icon": "linkedin"
+        "text": "NewsMelt",
+        "url": "https://github.com/Tuhin-SnapD/NewsMelt-Advance-News-Finder"
       },
       {
-        "text": "View Projects",
-        "url": "https://github.com/Tuhin-SnapD?tab=repositories",
-        "icon": "external"
+        "text": "GitHub",
+        "url": "https://github.com/Tuhin-SnapD"
       }
     ]
   },
   "future": {
-    "title": "Future Goals",
-    "description": "Looking ahead, I aim to [Your Goals]. Excited about [Technologies/Areas], and committed to continuous growth and making a positive impact through technology.",
+    "title": "What's Next",
     "year": "Future",
-    "links": []
+    "description": "Going deeper into LLM agents and RAG pipelines, system design at scale, and a bit of Rust. Currently re-reading Designing Data-Intensive Applications — again, because it is that good.",
+    "skills": [
+      "LLM Agents",
+      "RAG",
+      "System Design",
+      "Rust"
+    ],
+    "links": [
+      {
+        "text": "LinkedIn",
+        "url": "https://www.linkedin.com/in/tuhin-chakrabarty-1074aa19b/"
+      },
+      {
+        "text": "Email",
+        "url": "mailto:tuhinchakrabarty14@gmail.com"
+      }
+    ]
   }
 }
-

@@ -229,7 +229,18 @@ export default class UIScene extends Phaser.Scene {
       onClick: () => this.closeModal()
     });
 
-    this.modal = { overlay, root, panel, close, accent, closing: false };
+    this.modal = {
+      overlay,
+      root,
+      panel,
+      close,
+      content,
+      accent,
+      panelW: panelWFinal,
+      panelH,
+      contentH,
+      closing: false
+    };
 
     this.input.keyboard.off('keydown-ESC', this.closeModal, this);
     this.input.keyboard.on('keydown-ESC', this.closeModal, this);
