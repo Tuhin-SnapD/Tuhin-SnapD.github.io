@@ -1,9 +1,9 @@
 import { defineConfig } from 'vite';
 
-export default defineConfig(({ command }) => {
-  // Use base path only for production builds (GitHub Pages)
-  // For development, use '/' to avoid WebSocket/HMR issues
-  const base = command === 'serve' ? '/' : '/Tuhin-SnapD.github.io/';
+export default defineConfig(() => {
+  // This repository is a GitHub *user* site (Tuhin-SnapD.github.io), so it is
+  // published at the domain root rather than under /Tuhin-SnapD.github.io/.
+  const base = '/';
 
   return {
     base,
