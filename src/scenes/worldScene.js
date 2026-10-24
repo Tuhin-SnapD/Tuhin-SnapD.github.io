@@ -7,6 +7,10 @@ const JUMP_VELOCITY = -560;
 const WORLD_HEIGHT = 720;
 const GROUND_Y = 500;
 const GROUND_TOP = GROUND_Y + 16;
+// Ground is drawn well below the camera bounds so tall viewports never reveal
+// empty space underneath the world.
+const VISUAL_BOTTOM = 4000;
+const TOUCH_BUTTON_SIZE = 64;
 
 const COIN_POSITIONS = [
   { x: 400, dy: 110 },
@@ -48,6 +52,27 @@ function hasTouchInput(scene) {
   return (device?.input?.touch) ||
     (typeof window !== 'undefined' && 'ontouchstart' in window) ||
     (typeof navigator !== 'undefined' && navigator.maxTouchPoints > 0);
+}
+
+const NO_INSETS = { top: 0, right: 0, bottom: 0, left: 0 };
+
+function safeInsets() {
+  if (typeof document === 'undefined' || !document.body) return NO_INSETS;
+
+  const probe = document.createElement('div');
+  probe.style.cssText = 'position:fixed;inset:0;visibility:hidden;pointer-events:none;' +
+    'padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left)';
+  document.body.appendChild(probe);
+
+  const styles = getComputedStyle(probe);
+  const insets = {
+    top: parseFloat(styles.paddingTop) || 0,
+    right: parseFloat(styles.paddingRight) || 0,
+    bottom: parseFloat(styles.paddingBottom) || 0,
+    left: parseFloat(styles.paddingLeft) || 0
+  };
+  probe.remove();
+  return insets;
 }
 
 export default class WorldScene extends Phaser.Scene {
@@ -107,8 +132,8 @@ export default class WorldScene extends Phaser.Scene {
     this.createAnimations();
     this.player.play('idle');
 
-    this.cameras.main.setBounds(0, 0, worldWidth, WORLD_HEIGHT);
-    this.cameras.main.startFollow(this.player, true, 0.12, 0.12, 0, 60);
+    this.cameras.main.setBounds(0, 0, worldWidth, Math.max(WORLD_HEIGHT, this.scale.height));
+    this.cameras.main.startFollow(this.player, true, 0.12, 0.12, 0, 0);
     this.cameras.main.setDeadzone(160, 80);
     this.cameras.main.setBackgroundColor('#070a18');
 
@@ -126,10 +151,44 @@ export default class WorldScene extends Phaser.Scene {
     this.createHud();
     this.createInteractIndicator();
     this.setupTouchControls();
+    this.layoutHud(this.scale.width, this.scale.height);
+
+    this.scale.on('resize', this.handleResize, this);
 
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
+      this.scale.off('resize', this.handleResize, this);
       this.tweens.killAll();
     });
+  }
+
+  handleResize(gameSize) {
+    const width = gameSize.width;
+    const height = gameSize.height;
+
+    this.cameras.main.setBounds(0, 0, this.worldWidth, Math.max(WORLD_HEIGHT, height));
+    this.skyImage?.setDisplaySize(width, height);
+    this.vignetteImage?.setDisplaySize(width, height);
+    this.layoutHud(width, height);
+
+    if (this.introOpen) {
+      this.layoutIntro(width, height);
+    }
+  }
+
+  layoutHud(width, height) {
+    const insets = safeInsets();
+
+    this.coinPill?.setPosition(85 + insets.left, 44 + insets.top);
+    this.resumeBtn?.container.setPosition(width - 46 - insets.right, 44 + insets.top);
+    this.hint?.setPosition(width / 2, height - 26 - insets.bottom);
+
+    if (this.touchButtons) {
+      const y = height - 64 - insets.bottom;
+      this.touchButtons.left.setPosition(56 + insets.left, y);
+      this.touchButtons.right.setPosition(140 + insets.left, y);
+      this.touchButtons.jump.setPosition(width - 140 - insets.right, y);
+      this.touchButtons.interact.setPosition(width - 56 - insets.right, y);
+    }
   }
 
   createAnimations() {
@@ -154,7 +213,7 @@ export default class WorldScene extends Phaser.Scene {
   createBackground(worldWidth) {
     const { width, height } = this.cameras.main;
 
-    this.add.image(0, 0, 'sky')
+    this.skyImage = this.add.image(0, 0, 'sky')
       .setOrigin(0, 0)
       .setDisplaySize(width, height)
       .setScrollFactor(0)
@@ -241,7 +300,7 @@ export default class WorldScene extends Phaser.Scene {
         .setDepth(-760);
     }
 
-    this.add.image(0, 0, 'vignette')
+    this.vignetteImage = this.add.image(0, 0, 'vignette')
       .setOrigin(0, 0)
       .setDisplaySize(width, height)
       .setScrollFactor(0)
@@ -249,13 +308,14 @@ export default class WorldScene extends Phaser.Scene {
   }
 
   createGround(worldWidth) {
+    const slabHeight = VISUAL_BOTTOM - GROUND_TOP;
     const slab = this.add.graphics().setDepth(0);
     slab.fillStyle(0x0a0f26, 1);
-    slab.fillRect(0, GROUND_TOP, worldWidth, WORLD_HEIGHT - GROUND_TOP);
+    slab.fillRect(0, GROUND_TOP, worldWidth, slabHeight);
     slab.fillStyle(0x0e1430, 1);
-    slab.fillRect(0, GROUND_TOP + 26, worldWidth, WORLD_HEIGHT - GROUND_TOP - 26);
+    slab.fillRect(0, GROUND_TOP + 26, worldWidth, slabHeight - 26);
 
-    for (let y = GROUND_TOP + 54; y < WORLD_HEIGHT; y += 42) {
+    for (let y = GROUND_TOP + 54; y < VISUAL_BOTTOM; y += 42) {
       slab.lineStyle(1, 0xffffff, 0.035);
       slab.moveTo(0, y);
       slab.lineTo(worldWidth, y);
@@ -268,7 +328,7 @@ export default class WorldScene extends Phaser.Scene {
       .setAlpha(0.75)
       .setDepth(1);
 
-    this.groundBody = this.add.rectangle(worldWidth / 2, (GROUND_TOP + WORLD_HEIGHT) / 2, worldWidth, WORLD_HEIGHT - GROUND_TOP);
+    this.groundBody = this.add.rectangle(worldWidth / 2, (GROUND_TOP + VISUAL_BOTTOM) / 2, worldWidth, slabHeight);
     this.physics.add.existing(this.groundBody, true);
   }
 
@@ -439,8 +499,9 @@ export default class WorldScene extends Phaser.Scene {
 
     const labelBg = this.add.graphics();
     drawPanel(labelBg, 74, 28, 14, 0x0b1026, 0.8, 0xffffff, 0.12);
+    labelBg.x = 62;
 
-    const label = this.add.text(54, 0, 'Explore', {
+    const label = this.add.text(62, 0, 'Explore', {
       fontFamily: FONT,
       fontSize: '12px',
       fontStyle: '600',
@@ -464,7 +525,7 @@ export default class WorldScene extends Phaser.Scene {
   createHud() {
     const { width, height } = this.cameras.main;
 
-    const coinPill = this.add.container(24, 22).setScrollFactor(0).setDepth(1000);
+    const coinPill = this.add.container(85, 44).setScrollFactor(0).setDepth(1000);
     const pillBg = this.add.graphics();
     drawPanel(pillBg, 122, 44, 22, C.panel, 0.75, 0xffffff, 0.12);
     const coinIcon = this.add.image(-36, 0, 'coin').setScale(0.5);
@@ -474,14 +535,15 @@ export default class WorldScene extends Phaser.Scene {
       fontStyle: '700',
       color: C.text
     }).setOrigin(0, 0.5);
-    const coinLabel = this.add.text(-16 + this.coinText.width + 8, 0, 'coins', {
+    this.coinLabel = this.add.text(-16 + this.coinText.width + 8, 0, 'coins', {
       fontFamily: FONT,
       fontSize: '12px',
       fontStyle: '500',
       color: C.muted
     }).setOrigin(0, 0.5);
-    coinPill.add([pillBg, coinIcon, this.coinText, coinLabel]);
+    coinPill.add([pillBg, coinIcon, this.coinText, this.coinLabel]);
     coinPill.setSize(122, 44);
+    this.coinPill = coinPill;
 
     this.resumeBtn = makeButton(this, width - 46, 44, 44, 44, 'CV', {
       radius: 22,
@@ -521,7 +583,8 @@ export default class WorldScene extends Phaser.Scene {
     this.canMove = false;
     const { width, height } = this.cameras.main;
 
-    const overlay = this.add.rectangle(width / 2, height / 2, width, height, 0x050814, 0.72)
+    const overlay = this.add.rectangle(0, 0, 4000, 4000, 0x050814, 0.72)
+      .setOrigin(0, 0)
       .setScrollFactor(0)
       .setDepth(2000)
       .setAlpha(0)
@@ -607,9 +670,13 @@ export default class WorldScene extends Phaser.Scene {
     });
     root.add(start.container);
 
+    this.introRoot = root;
+    this.introOverlay = overlay;
+
+    const introScale = Math.min(1, (width - 24) / panelW, (height - 24) / panelH);
+    root.setPosition(width / 2, height / 2).setScale(introScale);
     root.setAlpha(0);
-    root.setScale(0.96);
-    this.tweens.add({ targets: root, alpha: 1, scale: 1, duration: 320, ease: 'Back.easeOut' });
+    this.tweens.add({ targets: root, alpha: 1, duration: 300, ease: 'Power2' });
     this.tweens.add({ targets: overlay, alpha: 1, duration: 260 });
 
     const dismiss = () => {
@@ -627,6 +694,8 @@ export default class WorldScene extends Phaser.Scene {
         onComplete: () => {
           root.destroy();
           overlay.destroy();
+          this.introRoot = null;
+          this.introOverlay = null;
           this.canMove = true;
         }
       });
@@ -637,6 +706,12 @@ export default class WorldScene extends Phaser.Scene {
     this.input.keyboard.on('keydown-ENTER', dismiss);
     this.input.keyboard.on('keydown-SPACE', dismiss);
     this.input.keyboard.on('keydown-ESC', dismiss);
+  }
+
+  layoutIntro(width, height) {
+    if (!this.introRoot) return;
+    const scale = Math.min(1, (width - 24) / 560, (height - 24) / 344);
+    this.introRoot.setPosition(width / 2, height / 2).setScale(scale);
   }
 
   openResume() {
@@ -686,6 +761,7 @@ export default class WorldScene extends Phaser.Scene {
     }
     localStorage.setItem('collectedCoins', String(this.collectedCoins));
     this.coinText.setText(`${this.collectedCoins}`);
+    this.coinLabel?.setX(-16 + this.coinText.width + 8);
   }
 
   spawnBurst(x, y, tint, quantity) {
@@ -767,6 +843,9 @@ export default class WorldScene extends Phaser.Scene {
 
   resumeMovement() {
     this.canMove = true;
+    this.touch.left = false;
+    this.touch.right = false;
+    this.jumpPressed = false;
     this.player?.setVelocity(0, 0);
     if (this.currentZone && this.interactIndicator) {
       this.interactIndicator.setVisible(true);
@@ -791,6 +870,9 @@ export default class WorldScene extends Phaser.Scene {
 
     this.canMove = false;
     this.player.setVelocity(0, 0);
+    this.touch.left = false;
+    this.touch.right = false;
+    this.jumpPressed = false;
     this.interactIndicator.setVisible(false);
 
     this.spawnBurst(this.player.x, this.player.y - 6, this.currentZone.accent, 14);
@@ -807,25 +889,34 @@ export default class WorldScene extends Phaser.Scene {
     if (!hasTouchInput(this)) return;
 
     const { width, height } = this.cameras.main;
-    const y = height - 58;
+    const size = TOUCH_BUTTON_SIZE;
+    const y = height - 64;
     const opts = {
-      radius: 28,
+      radius: size / 2,
       fill: 0xffffff,
-      fillAlpha: 0.07,
-      hoverFillAlpha: 0.12,
+      fillAlpha: 0.09,
+      hoverFillAlpha: 0.16,
       stroke: 0xffffff,
-      strokeAlpha: 0.2,
-      fontSize: 20
+      strokeAlpha: 0.24,
+      hoverStrokeAlpha: 0.4,
+      fontSize: 24
     };
 
-    const left = makeButton(this, 54, y, 56, 56, '←', opts);
-    const right = makeButton(this, 124, y, 56, 56, '→', opts);
-    const jump = makeButton(this, width - 124, y, 56, 56, '↑', opts);
-    const interact = makeButton(this, width - 54, y, 56, 56, 'E', { ...opts, fontSize: 16 });
+    const left = makeButton(this, 56, y, size, size, '←', opts);
+    const right = makeButton(this, 140, y, size, size, '→', opts);
+    const jump = makeButton(this, width - 140, y, size, size, '↑', opts);
+    const interact = makeButton(this, width - 56, y, size, size, 'E', { ...opts, fontSize: 19 });
 
     for (const btn of [left, right, jump, interact]) {
       btn.container.setScrollFactor(0).setDepth(1000);
     }
+
+    this.touchButtons = {
+      left: left.container,
+      right: right.container,
+      jump: jump.container,
+      interact: interact.container
+    };
 
     const hold = (btn, key) => {
       btn.container.on('pointerdown', () => { this.touch[key] = true; });

@@ -5,12 +5,17 @@ import UIScene from './scenes/uiScene.js';
 
 const config = {
   type: Phaser.AUTO,
-  width: 1280,
-  height: 720,
+  width: window.innerWidth,
+  height: window.innerHeight,
   parent: 'game-container',
   backgroundColor: '#070a18',
   antialias: true,
   roundPixels: false,
+  disableContextMenu: true,
+  input: {
+    activePointers: 3,
+    touch: { capture: true }
+  },
   physics: {
     default: 'arcade',
     arcade: {
@@ -19,16 +24,8 @@ const config = {
     }
   },
   scale: {
-    mode: Phaser.Scale.FIT,
-    autoCenter: Phaser.Scale.CENTER_BOTH,
-    min: {
-      width: 640,
-      height: 360
-    },
-    max: {
-      width: 1920,
-      height: 1080
-    }
+    mode: Phaser.Scale.RESIZE,
+    autoCenter: Phaser.Scale.NO_CENTER
   },
   scene: [PreloadScene, WorldScene, UIScene]
 };
