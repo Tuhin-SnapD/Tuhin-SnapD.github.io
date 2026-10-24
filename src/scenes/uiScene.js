@@ -256,6 +256,7 @@ export default class UIScene extends Phaser.Scene {
       fontSize: 15,
       onClick: () => this.closeModal()
     });
+    close.container.input.hitArea.setTo(-24, -24, 48, 48);
 
     // Clip scrolling content to the panel's inner area.
     const maskShape = this.make.graphics({ add: false });

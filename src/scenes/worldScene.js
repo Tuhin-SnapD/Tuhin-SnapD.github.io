@@ -11,6 +11,9 @@ const GROUND_TOP = GROUND_Y + 16;
 // empty space underneath the world.
 const VISUAL_BOTTOM = 4000;
 const TOUCH_BUTTON_SIZE = 64;
+const TOUCH_BUTTON_PADDING = 10;
+const JUMP_BUFFER_MS = 150;
+const COYOTE_MS = 90;
 
 const COIN_POSITIONS = [
   { x: 400, dy: 110 },
@@ -89,7 +92,10 @@ export default class WorldScene extends Phaser.Scene {
     this.groundY = GROUND_Y;
     this.resumeAvailable = false;
     this.touch = { left: false, right: false };
+    this.touchPointers = { left: null, right: null };
     this.jumpPressed = false;
+    this.jumpQueuedAt = -Infinity;
+    this.lastGroundedAt = -Infinity;
   }
 
   create() {
@@ -154,9 +160,13 @@ export default class WorldScene extends Phaser.Scene {
     this.layoutHud(this.scale.width, this.scale.height);
 
     this.scale.on('resize', this.handleResize, this);
+    this.game.events.on(Phaser.Core.Events.BLUR, this.clearTouchState, this);
 
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
       this.scale.off('resize', this.handleResize, this);
+      this.game.events.off(Phaser.Core.Events.BLUR, this.clearTouchState, this);
+      this.input.off('pointerup', this.releaseTouchPointer, this);
+      this.input.off('gameout', this.clearTouchState, this);
       this.tweens.killAll();
     });
   }
@@ -511,6 +521,12 @@ export default class WorldScene extends Phaser.Scene {
     container.add([labelBg, bg, key, label]);
     this.interactIndicator = container;
 
+    // Tapping the "Explore" prompt also opens the stop on touch screens.
+    container.setSize(140, 48);
+    container.setInteractive(new Phaser.Geom.Rectangle(-24, -24, 140, 48), Phaser.Geom.Rectangle.Contains);
+    container.input.cursor = 'pointer';
+    container.on('pointerdown', () => this.handleInteraction());
+
     this.indicatorTween = this.tweens.add({
       targets: container,
       scale: { from: 1, to: 1.07 },
@@ -552,6 +568,7 @@ export default class WorldScene extends Phaser.Scene {
       onClick: () => this.openResume()
     });
     this.resumeBtn.container.setScrollFactor(0).setDepth(1000);
+    this.resumeBtn.container.input.hitArea.setTo(-28, -28, 56, 56);
 
     // Scroll progress line
     this.progressLine = this.add.image(0, 0, 'accent-line')
@@ -843,9 +860,7 @@ export default class WorldScene extends Phaser.Scene {
 
   resumeMovement() {
     this.canMove = true;
-    this.touch.left = false;
-    this.touch.right = false;
-    this.jumpPressed = false;
+    this.clearTouchState();
     this.player?.setVelocity(0, 0);
     if (this.currentZone && this.interactIndicator) {
       this.interactIndicator.setVisible(true);
@@ -870,9 +885,7 @@ export default class WorldScene extends Phaser.Scene {
 
     this.canMove = false;
     this.player.setVelocity(0, 0);
-    this.touch.left = false;
-    this.touch.right = false;
-    this.jumpPressed = false;
+    this.clearTouchState();
     this.interactIndicator.setVisible(false);
 
     this.spawnBurst(this.player.x, this.player.y - 6, this.currentZone.accent, 14);
@@ -909,6 +922,10 @@ export default class WorldScene extends Phaser.Scene {
 
     for (const btn of [left, right, jump, interact]) {
       btn.container.setScrollFactor(0).setDepth(1000);
+
+      // Give fingers a little extra room without moving the visuals.
+      const half = size / 2 + TOUCH_BUTTON_PADDING;
+      btn.container.input.hitArea.setTo(-half, -half, half * 2, half * 2);
     }
 
     this.touchButtons = {
@@ -918,15 +935,45 @@ export default class WorldScene extends Phaser.Scene {
       interact: interact.container
     };
 
+    // Track which finger is holding each direction. Releasing on pointerout
+    // made movement cut out when a thumb drifted a few pixels, so release is
+    // handled by the scene-level pointerup instead.
     const hold = (btn, key) => {
-      btn.container.on('pointerdown', () => { this.touch[key] = true; });
-      btn.container.on('pointerup', () => { this.touch[key] = false; });
-      btn.container.on('pointerout', () => { this.touch[key] = false; });
+      btn.container.on('pointerdown', (pointer) => {
+        const other = key === 'left' ? 'right' : 'left';
+        this.touchPointers[other] = null;
+        this.touch[other] = false;
+
+        this.touchPointers[key] = pointer.id;
+        this.touch[key] = true;
+      });
     };
     hold(left, 'left');
     hold(right, 'right');
+
     jump.container.on('pointerdown', () => { this.jumpPressed = true; });
     interact.container.on('pointerdown', () => this.handleInteraction());
+
+    this.input.on('pointerup', this.releaseTouchPointer, this);
+    this.input.on('gameout', this.clearTouchState, this);
+  }
+
+  releaseTouchPointer(pointer) {
+    for (const key of ['left', 'right']) {
+      if (this.touchPointers[key] === pointer.id) {
+        this.touchPointers[key] = null;
+        this.touch[key] = false;
+      }
+    }
+  }
+
+  clearTouchState() {
+    this.touch.left = false;
+    this.touch.right = false;
+    this.touchPointers.left = null;
+    this.touchPointers.right = null;
+    this.jumpPressed = false;
+    this.jumpQueuedAt = -Infinity;
   }
 
   update() {
@@ -955,18 +1002,29 @@ export default class WorldScene extends Phaser.Scene {
     }
     this.player.setVelocityX(velocityX);
 
+    const now = this.time.now;
     const onGround = this.player.body.blocked.down || this.player.body.touching.down;
-    const wantJump = Phaser.Input.Keyboard.JustDown(this.jumpKey) ||
-      Phaser.Input.Keyboard.JustDown(this.wasd.up) ||
-      this.jumpPressed;
+    if (onGround) this.lastGroundedAt = now;
 
-    if (wantJump && onGround) {
-      this.player.setVelocityY(JUMP_VELOCITY);
+    const jumpDown = Phaser.Input.Keyboard.JustDown(this.jumpKey) ||
+      Phaser.Input.Keyboard.JustDown(this.wasd.up);
+    if (jumpDown || this.jumpPressed) {
+      this.jumpQueuedAt = now;
       this.jumpPressed = false;
+    }
+
+    // Buffer taps made just before landing and allow a late jump just after
+    // walking off a ledge, so touch controls feel much less picky.
+    const jumpBuffered = now - this.jumpQueuedAt <= JUMP_BUFFER_MS;
+    const canJump = onGround || now - this.lastGroundedAt <= COYOTE_MS;
+
+    if (jumpBuffered && canJump) {
+      this.player.setVelocityY(JUMP_VELOCITY);
+      this.jumpQueuedAt = -Infinity;
+      this.lastGroundedAt = -Infinity;
       this.cameras.main.shake(90, 0.0012);
       this.spawnBurst(this.player.x, this.player.y + 30, 0xffffff, 4);
     }
-    this.jumpPressed = false;
 
     if (onGround) {
       const current = this.player.anims.currentAnim?.key;
